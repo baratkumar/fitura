@@ -42,7 +42,6 @@ export default function NewClientPage() {
     fitnessGoals: '',
     firstTimeInGym: '',
     previousGymDetails: '',
-    photoUrl: '',
     membershipFee: '',
     discount: '',
     paymentDate: '',

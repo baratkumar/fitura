@@ -5,7 +5,7 @@
  * - production: FT_PRD
  */
 function getTablePrefix(): string {
-  const nodeEnv = process.env.NODE_ENV || 'local'
+  const nodeEnv = (process.env.NODE_ENV || 'local') as string
   
   if (nodeEnv === 'production') {
     return 'FT_PRD'

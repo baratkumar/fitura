@@ -132,7 +132,7 @@ export default function AttendancePage() {
               required
               min="1"
             />
-            <p className="mt-1 text-xs text-gray-500">Enter the client's ID number</p>
+            <p className="mt-1 text-xs text-gray-500">Enter the client&apos;s ID number</p>
           </div>
 
           {/* Date */}
@@ -149,7 +149,7 @@ export default function AttendancePage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
               required
             />
-            <p className="mt-1 text-xs text-gray-500">Attendance date (pre-populated with today's date)</p>
+            <p className="mt-1 text-xs text-gray-500">Attendance date (pre-populated with today&apos;s date)</p>
           </div>
 
           {/* Time */}

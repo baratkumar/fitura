@@ -15,6 +15,9 @@ function getSupabaseConfig() {
         database: 'postgres',
         user: 'postgres',
         password: process.env.DB_PASSWORD || '',
+        ssl: {
+          rejectUnauthorized: false, // Required for Supabase connections
+        },
       }
     }
   }
@@ -28,7 +31,7 @@ const poolConfig = supabaseConfig
       ...supabaseConfig,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 10000, // Increased for serverless environments
     }
   : {
       host: process.env.DB_HOST || 'localhost',

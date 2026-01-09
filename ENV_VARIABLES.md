@@ -67,3 +67,4 @@ To get this token:
 - [ ] Application redeployed after adding variables
 - [ ] Database initialized via `/api/init-db` endpoint
 
+

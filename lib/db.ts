@@ -20,13 +20,16 @@ if (!MONGODB_URI) {
 }
 
 // Validate that the connection string is a valid MongoDB URI
-if (!MONGODB_URI.startsWith('mongodb://') && !MONGODB_URI.startsWith('mongodb+srv://')) {
+if (!MONGODB_URI || (!MONGODB_URI.startsWith('mongodb://') && !MONGODB_URI.startsWith('mongodb+srv://'))) {
   throw new Error(
-    `Invalid MongoDB connection string. Expected URI to start with "mongodb://" or "mongodb+srv://", but got: ${MONGODB_URI.substring(0, 50)}...\n` +
+    `Invalid MongoDB connection string. Expected URI to start with "mongodb://" or "mongodb+srv://", but got: ${MONGODB_URI?.substring(0, 50) || 'undefined'}...\n` +
     `Please set MONGODB_URI in your .env.local file with a valid MongoDB connection string.\n` +
     `Example: mongodb://localhost:27017/fitura or mongodb+srv://username:password@cluster.mongodb.net/fitura`
   );
 }
+
+// At this point, MONGODB_URI is guaranteed to be a string
+const MONGODB_URI_FINAL: string = MONGODB_URI;
 
 interface MongooseCache {
   conn: Mongoose | null;
@@ -56,11 +59,11 @@ async function connectDB(): Promise<Mongoose> {
     };
 
     // Log connection attempt (mask password in URI)
-    const maskedUri = MONGODB_URI.replace(/(mongodb:\/\/[^:]+:)([^@]+)(@)/, '$1****$3');
+    const maskedUri = MONGODB_URI_FINAL.replace(/(mongodb:\/\/[^:]+:)([^@]+)(@)/, '$1****$3');
     console.log('Connecting to MongoDB...');
     console.log(`Connection URI: ${maskedUri}`);
     
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance: Mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI_FINAL, opts).then((mongooseInstance: Mongoose) => {
       console.log('✓ MongoDB connected successfully');
       return mongooseInstance;
     });

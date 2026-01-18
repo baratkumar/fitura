@@ -1,104 +1,154 @@
-import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
-import { getTableName } from '@/lib/tableNames'
+import { NextResponse } from 'next/server';
+import connectDB from '@/lib/db';
+import Client from '@/lib/models/Client';
+import Attendance from '@/lib/models/Attendance';
+import Membership from '@/lib/models/Membership';
 
 export async function GET() {
   try {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const todayEnd = new Date(today)
-    todayEnd.setHours(23, 59, 59, 999)
+    await connectDB();
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
 
     // Get start of current week (Monday)
-    const weekStart = new Date(today)
-    const dayOfWeek = today.getDay()
-    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Adjust when day is Sunday
-    weekStart.setDate(diff)
-    weekStart.setHours(0, 0, 0, 0)
+    const weekStart = new Date(today);
+    const dayOfWeek = today.getDay();
+    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    weekStart.setDate(diff);
+    weekStart.setHours(0, 0, 0, 0);
 
     // Get end of current week (Sunday)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekStart.getDate() + 6)
-    weekEnd.setHours(23, 59, 59, 999)
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
 
     // Get next week end for expiring clients
-    const nextWeekEnd = new Date(weekEnd)
-    nextWeekEnd.setDate(weekEnd.getDate() + 7)
+    const nextWeekEnd = new Date(weekEnd);
+    nextWeekEnd.setDate(weekEnd.getDate() + 7);
 
-    const clientsTable = getTableName('clients')
-    const membershipsTable = getTableName('memberships')
-    const attendanceTable = getTableName('attendance')
+    // Today's clients and revenue
+    const todayClients = await Client.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: today,
+            $lte: todayEnd,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
+        },
+      },
+    ]);
 
-    // Today's clients
-    const todayClientsResult = await pool.query(
-      `SELECT COUNT(*) as count, 
-       COALESCE(SUM(COALESCE(c.paid_amount, 0)), 0) as revenue
-       FROM ${clientsTable} c
-       LEFT JOIN ${membershipsTable} m ON c.membership_type = m.id
-       WHERE c.created_at >= $1 AND c.created_at <= $2`,
-      [today, todayEnd]
-    )
-
-    // Current week clients
-    const weekClientsResult = await pool.query(
-      `SELECT COUNT(*) as count, 
-       COALESCE(SUM(COALESCE(c.paid_amount, 0)), 0) as revenue
-       FROM ${clientsTable} c
-       LEFT JOIN ${membershipsTable} m ON c.membership_type = m.id
-       WHERE c.created_at >= $1 AND c.created_at <= $2`,
-      [weekStart, weekEnd]
-    )
+    // Current week clients and revenue
+    const weekClients = await Client.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: weekStart,
+            $lte: weekEnd,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
+        },
+      },
+    ]);
 
     // Total clients and overall revenue
-    const totalResult = await pool.query(
-      `SELECT COUNT(*) as count, 
-       COALESCE(SUM(COALESCE(c.paid_amount, 0)), 0) as revenue
-       FROM ${clientsTable} c
-       LEFT JOIN ${membershipsTable} m ON c.membership_type = m.id`
-    )
+    const totalClients = await Client.aggregate([
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
+        },
+      },
+    ]);
 
-    // Expiring clients this week (membership created_at + duration_days falls within next 7 days)
-    const expiringResult = await pool.query(
-      `SELECT COUNT(*) as count
-       FROM ${clientsTable} c
-       LEFT JOIN ${membershipsTable} m ON c.membership_type = m.id
-       WHERE m.duration_days IS NOT NULL
-       AND (c.created_at::date + INTERVAL '1 day' * m.duration_days) >= $1
-       AND (c.created_at::date + INTERVAL '1 day' * m.duration_days) <= $2`,
-      [today, nextWeekEnd]
-    )
+    // Expiring clients this week
+    // Calculate expiry date: joiningDate + membership duration
+    const expiringClients = await Client.aggregate([
+      {
+        $lookup: {
+          from: 'memberships',
+          localField: 'membershipType',
+          foreignField: '_id',
+          as: 'membership',
+        },
+      },
+      {
+        $unwind: {
+          path: '$membership',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: {
+          'membership.durationDays': { $exists: true, $ne: null },
+          joiningDate: { $exists: true, $ne: null },
+        },
+      },
+      {
+        $addFields: {
+          expiryDate: {
+            $add: [
+              '$joiningDate',
+              { $multiply: ['$membership.durationDays', 24 * 60 * 60 * 1000] },
+            ],
+          },
+        },
+      },
+      {
+        $match: {
+          expiryDate: {
+            $gte: today,
+            $lte: nextWeekEnd,
+          },
+        },
+      },
+      {
+        $count: 'count',
+      },
+    ]);
 
     // Today's attendance
-    const todayAttendanceResult = await pool.query(
-      `SELECT COUNT(*) as count
-       FROM ${attendanceTable}
-       WHERE attendance_date = $1`,
-      [today.toISOString().split('T')[0]]
-    )
-
-    const todayAttendance = parseInt(todayAttendanceResult.rows[0].count || 0)
+    const todayAttendance = await Attendance.countDocuments({
+      attendanceDate: {
+        $gte: today,
+        $lte: todayEnd,
+      },
+    });
 
     const stats = {
-      todayRevenue: parseFloat(todayClientsResult.rows[0].revenue || 0),
-      todayClients: parseInt(todayClientsResult.rows[0].count || 0),
+      todayRevenue: todayClients[0]?.revenue || 0,
+      todayClients: todayClients[0]?.count || 0,
       todayAttendance: todayAttendance,
-      expiringClientsThisWeek: parseInt(expiringResult.rows[0].count || 0),
-      currentWeekRevenue: parseFloat(weekClientsResult.rows[0].revenue || 0),
-      currentWeekClients: parseInt(weekClientsResult.rows[0].count || 0),
-      totalClients: parseInt(totalResult.rows[0].count || 0),
-      overallRevenue: parseFloat(totalResult.rows[0].revenue || 0),
-    }
+      expiringClientsThisWeek: expiringClients[0]?.count || 0,
+      currentWeekRevenue: weekClients[0]?.revenue || 0,
+      currentWeekClients: weekClients[0]?.count || 0,
+      totalClients: totalClients[0]?.count || 0,
+      overallRevenue: totalClients[0]?.revenue || 0,
+    };
 
-    return NextResponse.json(stats)
+    return NextResponse.json(stats);
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error)
+    console.error('Error fetching dashboard stats:', error);
     return NextResponse.json(
       { error: 'Failed to fetch dashboard statistics' },
       { status: 500 }
-    )
+    );
   }
 }
-
-
-
-

@@ -6,7 +6,7 @@ import { Users, Edit, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Client {
-  id: number
+  clientId: number // Primary identifier - running number starting from 1
   firstName: string
   lastName: string
   email: string
@@ -43,20 +43,20 @@ export default function ClientsPage() {
     }
   }
 
-  const handleEdit = (id: number) => {
-    router.push(`/clients/${id}/edit`)
+  const handleEdit = (clientId: number) => {
+    router.push(`/clients/${clientId}/edit`)
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (clientId: number) => {
     if (!confirm('Are you sure you want to delete this client?')) return
 
     try {
-      const response = await fetch(`/api/clients/${id}`, {
+      const response = await fetch(`/api/clients/${clientId}`, {
         method: 'DELETE',
       })
 
       if (response.ok) {
-        setClients(clients.filter(client => client.id !== id))
+        setClients(clients.filter(client => client.clientId !== clientId))
       }
     } catch (error) {
       console.error('Error deleting client:', error)
@@ -103,8 +103,8 @@ export default function ClientsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {clients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.id}</td>
+                  <tr key={client.clientId} className="hover:bg-gray-50">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.clientId}</td>
                     <td className="px-3 sm:px-6 py-4">
                       <div className="text-sm font-semibold text-gray-900">
                         {client.firstName} {client.lastName}
@@ -147,14 +147,14 @@ export default function ClientsPage() {
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-2 sm:gap-3">
                         <button
-                          onClick={() => handleEdit(client.id)}
+                          onClick={() => handleEdit(client.clientId)}
                           className="text-fitura-blue hover:text-fitura-magenta transition-colors p-1 rounded hover:bg-fitura-blue/10"
                           title="Edit"
                         >
                           <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(client.id)}
+                          onClick={() => handleDelete(client.clientId)}
                           className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
                           title="Delete"
                         >

@@ -6,10 +6,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id)
-    if (isNaN(id)) {
-      return NextResponse.json({ error: 'Invalid membership ID' }, { status: 400 })
-    }
+    const id = params.id;
 
     const membership = await getMembership(id)
     if (!membership) {
@@ -31,10 +28,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id)
-    if (isNaN(id)) {
-      return NextResponse.json({ error: 'Invalid membership ID' }, { status: 400 })
-    }
+    const id = params.id;
 
     const body = await request.json()
     const { name, description, durationDays, price, isActive } = body
@@ -61,14 +55,14 @@ export async function PUT(
     return NextResponse.json(membership)
   } catch (error: any) {
     console.error('Error updating membership:', error)
-    if (error.code === '23505') {
+    if (error.code === 11000 || error.code === '11000') {
       return NextResponse.json(
         { error: 'A membership with this name already exists' },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to update membership' },
+      { error: 'Failed to update membership', details: error.message },
       { status: 500 }
     )
   }
@@ -79,10 +73,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id)
-    if (isNaN(id)) {
-      return NextResponse.json({ error: 'Invalid membership ID' }, { status: 400 })
-    }
+    const id = params.id;
 
     const success = await deleteMembership(id)
     if (!success) {
@@ -92,19 +83,14 @@ export async function DELETE(
     return NextResponse.json({ message: 'Membership deleted successfully' })
   } catch (error: any) {
     console.error('Error deleting membership:', error)
-    if (error.code === '23503') {
-      // Foreign key constraint violation
-      return NextResponse.json(
-        { error: 'Cannot delete membership that is assigned to clients' },
-        { status: 400 }
-      )
-    }
+    // MongoDB doesn't have foreign key constraints, but we can check if clients use this membership
     return NextResponse.json(
-      { error: 'Failed to delete membership' },
+      { error: 'Failed to delete membership', details: error.message },
       { status: 500 }
     )
   }
 }
+
 
 
 

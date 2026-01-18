@@ -1,172 +1,217 @@
-import pool from './db'
-import { getTableName } from './tableNames'
+import connectDB from './db';
+import Membership from './models/Membership';
 
 export interface Membership {
-  id: number
-  name: string
-  description?: string
-  durationDays: number
-  price?: number
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
+  membershipId: number; // Primary identifier - always use this instead of MongoDB _id
+  name: string;
+  description?: string;
+  durationDays: number;
+  price?: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export async function getAllMemberships(): Promise<Membership[]> {
-  const membershipsTable = getTableName('memberships')
-  const result = await pool.query(
-    `SELECT * FROM ${membershipsTable} WHERE is_active = true ORDER BY name`
-  )
-  return result.rows.map(row => ({
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    durationDays: row.duration_days,
-    price: row.price ? parseFloat(row.price) : undefined,
-    isActive: row.is_active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }))
+  await connectDB();
+  const memberships = await Membership.find({ 
+    isActive: true,
+    membershipId: { $exists: true, $ne: null, $gte: 1 } // Only get memberships with valid IDs >= 1
+  })
+    .sort({ membershipId: 1 })
+    .lean();
+  
+  // Map and filter out any invalid memberships
+  return memberships
+    .map(m => {
+      try {
+        return mapToMembership(m);
+      } catch (error) {
+        console.error('Skipping invalid membership:', error);
+        return null;
+      }
+    })
+    .filter((m): m is Membership => m !== null && m.membershipId >= 1);
 }
 
 export async function getAllMembershipsIncludingInactive(): Promise<Membership[]> {
-  const membershipsTable = getTableName('memberships')
-  const result = await pool.query(`SELECT * FROM ${membershipsTable} ORDER BY name`)
-  return result.rows.map(row => ({
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    durationDays: row.duration_days,
-    price: row.price ? parseFloat(row.price) : undefined,
-    isActive: row.is_active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }))
+  await connectDB();
+  const memberships = await Membership.find({
+    membershipId: { $exists: true, $ne: null, $gte: 1 } // Only get memberships with valid IDs >= 1
+  })
+    .sort({ membershipId: 1 })
+    .lean();
+  
+  // Map and filter out any invalid memberships
+  return memberships
+    .map(m => {
+      try {
+        return mapToMembership(m);
+      } catch (error) {
+        console.error('Skipping invalid membership:', error);
+        return null;
+      }
+    })
+    .filter((m): m is Membership => m !== null && m.membershipId >= 1);
 }
 
-export async function getMembership(id: number): Promise<Membership | null> {
-  const membershipsTable = getTableName('memberships')
-  const result = await pool.query(`SELECT * FROM ${membershipsTable} WHERE id = $1`, [id])
-  if (result.rows.length === 0) return null
-  const row = result.rows[0]
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    durationDays: row.duration_days,
-    price: row.price ? parseFloat(row.price) : undefined,
-    isActive: row.is_active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+export async function getMembership(id: string): Promise<Membership | null> {
+  await connectDB();
+  // Try to find by membershipId first (if it's a number), otherwise try MongoDB _id
+  const membershipId = parseInt(id);
+  let membership;
+  
+  if (!isNaN(membershipId)) {
+    membership = await Membership.findOne({ membershipId }).lean();
+  } else {
+    membership = await Membership.findById(id).lean();
   }
+  
+  if (!membership) return null;
+  return mapToMembership(membership);
+}
+
+export async function getMembershipByMembershipId(membershipId: number): Promise<Membership | null> {
+  await connectDB();
+  const membership = await Membership.findOne({ membershipId }).lean();
+  
+  if (!membership) return null;
+  return mapToMembership(membership);
+}
+
+/**
+ * Find the next available membership ID by checking for gaps in the sequence
+ * Always starts from 1 and finds the first available number
+ */
+async function getNextAvailableMembershipId(): Promise<number> {
+  await connectDB();
+  
+  // Get all existing membership IDs, sorted
+  const existingMemberships = await Membership.find({}, { membershipId: 1 })
+    .sort({ membershipId: 1 })
+    .lean();
+  
+  // Filter out any null/undefined/0 values and get valid membership IDs
+  const existingIds = existingMemberships
+    .map((m: any) => m.membershipId)
+    .filter((id: any) => id != null && id > 0 && Number.isInteger(id))
+    .sort((a: number, b: number) => a - b);
+  
+  // If no memberships exist, start with 1
+  if (existingIds.length === 0) {
+    return 1;
+  }
+  
+  // Always start checking from 1
+  // Find the first gap in the sequence starting from 1
+  for (let i = 1; i <= existingIds.length; i++) {
+    if (!existingIds.includes(i)) {
+      return i;
+    }
+  }
+  
+  // No gaps found, return max + 1
+  const maxId = Math.max(...existingIds);
+  return maxId + 1;
 }
 
 export async function createMembership(data: {
-  name: string
-  description?: string
-  durationDays: number
-  price?: number
-  isActive?: boolean
+  name: string;
+  description?: string;
+  durationDays: number;
+  price?: number;
+  isActive?: boolean;
 }): Promise<Membership> {
-  const membershipsTable = getTableName('memberships')
-  const result = await pool.query(
-    `INSERT INTO ${membershipsTable} (name, description, duration_days, price, is_active)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING *`,
-    [
-      data.name,
-      data.description || null,
-      data.durationDays,
-      data.price || null,
-      data.isActive !== undefined ? data.isActive : true,
-    ]
-  )
-  const row = result.rows[0]
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    durationDays: row.duration_days,
-    price: row.price ? parseFloat(row.price) : undefined,
-    isActive: row.is_active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+  await connectDB();
+  
+  // Get the next available membership ID (always starts from 1)
+  const membershipId = await getNextAvailableMembershipId();
+  
+  // Ensure membershipId is at least 1
+  if (membershipId < 1) {
+    throw new Error('Invalid membership ID generated. Membership IDs must start from 1.');
   }
+  
+  const membership = new Membership({
+    membershipId,
+    name: data.name,
+    description: data.description,
+    durationDays: data.durationDays,
+    price: data.price,
+    isActive: data.isActive !== undefined ? data.isActive : true,
+  });
+  
+  await membership.save();
+  return mapToMembership(membership.toObject());
 }
 
 export async function updateMembership(
-  id: number,
+  id: string,
   data: {
-    name?: string
-    description?: string
-    durationDays?: number
-    price?: number
-    isActive?: boolean
+    name?: string;
+    description?: string;
+    durationDays?: number;
+    price?: number;
+    isActive?: boolean;
   }
 ): Promise<Membership | null> {
-  const updates: string[] = []
-  const values: any[] = []
-  let paramCount = 1
-
-  if (data.name !== undefined) {
-    updates.push(`name = $${paramCount++}`)
-    values.push(data.name)
+  await connectDB();
+  
+  const updateData: any = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.durationDays !== undefined) updateData.durationDays = data.durationDays;
+  if (data.price !== undefined) updateData.price = data.price;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+  
+  // Try to find by membershipId first (if it's a number), otherwise try MongoDB _id
+  const membershipId = parseInt(id);
+  let membership;
+  
+  if (!isNaN(membershipId)) {
+    membership = await Membership.findOneAndUpdate({ membershipId }, updateData, { new: true }).lean();
+  } else {
+    membership = await Membership.findByIdAndUpdate(id, updateData, { new: true }).lean();
   }
-  if (data.description !== undefined) {
-    updates.push(`description = $${paramCount++}`)
-    values.push(data.description || null)
-  }
-  if (data.durationDays !== undefined) {
-    updates.push(`duration_days = $${paramCount++}`)
-    values.push(data.durationDays)
-  }
-  if (data.price !== undefined) {
-    updates.push(`price = $${paramCount++}`)
-    values.push(data.price || null)
-  }
-  if (data.isActive !== undefined) {
-    updates.push(`is_active = $${paramCount++}`)
-    values.push(data.isActive)
-  }
+  
+  if (!membership) return null;
+  return mapToMembership(membership);
+}
 
-  if (updates.length === 0) {
-    return getMembership(id)
+export async function deleteMembership(id: string): Promise<boolean> {
+  await connectDB();
+  // Try to find by membershipId first (if it's a number), otherwise try MongoDB _id
+  const membershipId = parseInt(id);
+  let result;
+  
+  if (!isNaN(membershipId)) {
+    result = await Membership.findOneAndDelete({ membershipId });
+  } else {
+    result = await Membership.findByIdAndDelete(id);
   }
+  
+  return !!result;
+}
 
-  updates.push(`updated_at = CURRENT_TIMESTAMP`)
-  values.push(id)
-
-  const membershipsTable = getTableName('memberships')
-  const result = await pool.query(
-    `UPDATE ${membershipsTable} SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
-    values
-  )
-
-  if (result.rows.length === 0) return null
-
-  const row = result.rows[0]
+function mapToMembership(membership: any): Membership {
+  // Only return membershipId, not MongoDB _id
+  // Ensure membershipId is always a valid number >= 1
+  const membershipId = membership.membershipId;
+  
+  if (!membershipId || membershipId < 1 || !Number.isInteger(membershipId)) {
+    console.error(`Error: Membership "${membership.name}" (MongoDB _id: ${membership._id}) has invalid membershipId: ${membershipId}. It must be >= 1.`);
+    // Don't return 0, throw error - will be caught and filtered in calling functions
+    throw new Error(`Membership "${membership.name}" has invalid membershipId: ${membershipId}. It must be >= 1.`);
+  }
+  
   return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    durationDays: row.duration_days,
-    price: row.price ? parseFloat(row.price) : undefined,
-    isActive: row.is_active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }
+    membershipId: membershipId,
+    name: membership.name,
+    description: membership.description,
+    durationDays: membership.durationDays,
+    price: membership.price,
+    isActive: membership.isActive,
+    createdAt: membership.createdAt ? membership.createdAt.toISOString() : new Date().toISOString(),
+    updatedAt: membership.updatedAt ? membership.updatedAt.toISOString() : new Date().toISOString(),
+  };
 }
-
-export async function deleteMembership(id: number): Promise<boolean> {
-  const membershipsTable = getTableName('memberships')
-  const result = await pool.query(`DELETE FROM ${membershipsTable} WHERE id = $1`, [id])
-  return result.rowCount !== null && result.rowCount > 0
-}
-
-
-
-
-
-
-
-

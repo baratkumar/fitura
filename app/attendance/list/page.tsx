@@ -5,11 +5,14 @@ import Link from 'next/link'
 import { Clock, Trash2, Plus, X } from 'lucide-react'
 
 interface Attendance {
-  id: number
-  clientId: number
+  id: string
+  clientId: string
   clientName?: string
   attendanceDate: string
-  attendanceTime: string
+  inTime: string
+  outTime?: string
+  status: 'IN' | 'OUT'
+  duration?: string
   createdAt: string
 }
 
@@ -45,7 +48,7 @@ export default function AttendanceListPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this attendance record?')) return
 
     try {
@@ -123,17 +126,15 @@ export default function AttendanceListPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                     <div className="flex flex-col gap-2">
                       <span>Client ID</span>
                       <div className="relative">
                         <input
-                          type="number"
+                          type="text"
                           value={filterClientId}
                           onChange={(e) => setFilterClientId(e.target.value)}
                           placeholder="Filter..."
-                          min="1"
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
                         />
                         {filterClientId && (
@@ -171,7 +172,14 @@ export default function AttendanceListPage() {
                       </div>
                     </div>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Time</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    <div className="flex flex-col gap-1">
+                      <span>Time</span>
+                      <span className="text-xs font-normal text-gray-400">IN / OUT</span>
+                    </div>
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Duration</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Recorded At</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -179,7 +187,6 @@ export default function AttendanceListPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {attendance.map((record) => (
                   <tr key={record.id} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{record.id}</td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">{record.clientId}</td>
                     <td className="px-3 sm:px-6 py-4 text-sm font-semibold text-gray-900">
                       <div className="flex flex-col">
@@ -190,11 +197,37 @@ export default function AttendanceListPage() {
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex flex-col">
                         <span>{formatDate(record.attendanceDate)}</span>
-                        <span className="text-xs md:hidden">{formatTime(record.attendanceTime)}</span>
+                        <span className="text-xs md:hidden">
+                          <span className="text-green-600">IN: {formatTime(record.inTime)}</span>
+                          {record.outTime && (
+                            <span className="text-red-600 ml-2">OUT: {formatTime(record.outTime)}</span>
+                          )}
+                        </span>
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                      {formatTime(record.attendanceTime)}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-green-600 font-medium">IN: {formatTime(record.inTime)}</span>
+                        {record.outTime && (
+                          <span className="text-red-600 font-medium">OUT: {formatTime(record.outTime)}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        record.status === 'IN' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {record.status}
+                      </span>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
+                      {record.duration ? (
+                        <span className="font-semibold text-blue-600">{record.duration}</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
                       {new Date(record.createdAt).toLocaleString('en-US', {

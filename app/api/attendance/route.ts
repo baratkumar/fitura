@@ -15,16 +15,8 @@ export async function GET(request: NextRequest) {
 
     // If both filters are provided, filter by both
     if (date && clientId) {
-      const parsedClientId = parseInt(clientId)
-      if (isNaN(parsedClientId)) {
-        return NextResponse.json(
-          { error: 'Invalid client ID' },
-          { status: 400 }
-        )
-      }
       // Get attendance by client ID and then filter by date on the client side
-      // Or we could create a combined query function
-      const allClientAttendance = await getAttendanceByClientId(parsedClientId)
+      const allClientAttendance = await getAttendanceByClientId(clientId)
       const filtered = allClientAttendance.filter(a => a.attendanceDate === date)
       return NextResponse.json(filtered)
     }
@@ -35,14 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (clientId) {
-      const parsedClientId = parseInt(clientId)
-      if (isNaN(parsedClientId)) {
-        return NextResponse.json(
-          { error: 'Invalid client ID' },
-          { status: 400 }
-        )
-      }
-      const attendance = await getAttendanceByClientId(parsedClientId)
+      const attendance = await getAttendanceByClientId(clientId)
       return NextResponse.json(attendance)
     }
 
@@ -69,40 +54,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const parsedClientId = parseInt(clientId)
-    if (isNaN(parsedClientId) || parsedClientId <= 0) {
-      return NextResponse.json(
-        { error: 'Invalid client ID. Please enter a valid client ID number.' },
-        { status: 400 }
-      )
-    }
-
     try {
-      const newAttendance = await addAttendance({
-        clientId: parsedClientId,
+      const attendance = await addAttendance({
+        clientId: clientId,
         attendanceDate,
         attendanceTime,
       })
 
-      return NextResponse.json(newAttendance, { status: 201 })
+      // Return attendance data with client info included
+      return NextResponse.json({
+        id: attendance.id,
+        clientId: attendance.clientId,
+        clientName: attendance.clientName,
+        attendanceDate: attendance.attendanceDate,
+        inTime: attendance.inTime,
+        outTime: attendance.outTime,
+        status: attendance.status,
+        duration: attendance.duration,
+        createdAt: attendance.createdAt,
+      }, { status: 201 })
     } catch (error: any) {
       // Handle specific errors
       if (error.message?.includes('not found') || error.message?.includes('Client not found')) {
         return NextResponse.json(
           { 
-            error: `Client ID ${parsedClientId} not found. Please verify the client ID exists in the system.`,
-            clientId: parsedClientId
+            error: `Client ID ${clientId} not found. Please verify the client ID exists in the system.`,
+            clientId: clientId
           },
           { status: 404 }
         )
       }
       
-      // Handle duplicate attendance records
-      if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
+      // Handle duplicate attendance records (shouldn't happen with new logic, but keep for safety)
+      if (error.code === 11000 || error.message?.includes('unique') || error.message?.includes('duplicate')) {
         return NextResponse.json(
           { 
-            error: 'This attendance record already exists for this client, date, and time.',
-            hint: 'Please check if the attendance was already recorded.'
+            error: 'This attendance record already exists for this client and date.',
+            hint: 'The system will toggle between IN and OUT automatically.'
           },
           { status: 409 }
         )

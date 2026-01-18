@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { CreditCard, Edit, Trash2 } from 'lucide-react'
 
 interface Membership {
-  id: number
+  membershipId: number // Primary identifier - no MongoDB _id exposed
   name: string
   description?: string
   durationDays: number
@@ -52,7 +52,7 @@ export default function SettingsPage() {
 
     try {
       const url = editingMembership
-        ? `/api/memberships/${editingMembership.id}`
+        ? `/api/memberships/${editingMembership.membershipId}`
         : '/api/memberships'
       const method = editingMembership ? 'PUT' : 'POST'
 
@@ -95,11 +95,11 @@ export default function SettingsPage() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (membershipId: number) => {
     if (!confirm('Are you sure you want to delete this membership?')) return
 
     try {
-      const response = await fetch(`/api/memberships/${id}`, {
+      const response = await fetch(`/api/memberships/${membershipId}`, {
         method: 'DELETE',
       })
 
@@ -291,6 +291,9 @@ export default function SettingsPage() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -312,7 +315,10 @@ export default function SettingsPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {memberships.map((membership) => (
-                      <tr key={membership.id} className="hover:bg-gray-50">
+                      <tr key={membership.membershipId} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {membership.membershipId}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                           {membership.name}
                         </td>
@@ -348,7 +354,7 @@ export default function SettingsPage() {
                               <Edit className="w-5 h-5" />
                             </button>
                             <button
-                              onClick={() => handleDelete(membership.id)}
+                              onClick={() => handleDelete(membership.membershipId)}
                               className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
                               title="Delete"
                             >

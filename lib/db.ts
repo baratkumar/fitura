@@ -1,175 +1,111 @@
-import { Pool } from 'pg'
-import { getTableName } from './tableNames'
+import mongoose, { Mongoose } from 'mongoose';
 
-// Extract Supabase project ref from URL if provided
-function getSupabaseConfig() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (supabaseUrl) {
-    // Extract project ref from URL like https://oyhjmwkrpdgwrbufgucg.supabase.co
-    const match = supabaseUrl.match(/https?:\/\/([^.]+)\.supabase\.co/)
-    if (match) {
-      const projectRef = match[1]
-      return {
-        host: `db.${projectRef}.supabase.co`,
-        port: 5432,
-        database: 'postgres',
-        user: 'postgres',
-        password: process.env.DB_PASSWORD || '',
-        ssl: {
-          rejectUnauthorized: false, // Required for Supabase connections
-        },
-      }
-    }
+// Get MongoDB URI from environment variables
+// Prioritize MONGODB_URI, but also check DATABASE_URL if it's a MongoDB connection string
+let MONGODB_URI = process.env.MONGODB_URI;
+
+// If MONGODB_URI is not set, check DATABASE_URL but only use it if it's a MongoDB connection string
+if (!MONGODB_URI && process.env.DATABASE_URL) {
+  const dbUrl = process.env.DATABASE_URL;
+  // Check if it's a MongoDB connection string
+  if (dbUrl.startsWith('mongodb://') || dbUrl.startsWith('mongodb+srv://')) {
+    MONGODB_URI = dbUrl;
   }
-  return null
 }
 
-// Database connection pool
-const supabaseConfig = getSupabaseConfig()
-const poolConfig = supabaseConfig 
-  ? {
-      ...supabaseConfig,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000, // Increased for serverless environments
-    }
-  : {
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      database: process.env.DB_NAME || 'fitura',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    }
+// Fallback to local MongoDB if nothing is set
+if (!MONGODB_URI) {
+  MONGODB_URI = 'mongodb://localhost:27017/fitura';
+  console.warn('⚠️  No MONGODB_URI found. Using default local MongoDB: mongodb://localhost:27017/fitura');
+}
 
-const pool = new Pool(poolConfig)
+// Validate that the connection string is a valid MongoDB URI
+if (!MONGODB_URI.startsWith('mongodb://') && !MONGODB_URI.startsWith('mongodb+srv://')) {
+  throw new Error(
+    `Invalid MongoDB connection string. Expected URI to start with "mongodb://" or "mongodb+srv://", but got: ${MONGODB_URI.substring(0, 50)}...\n` +
+    `Please set MONGODB_URI in your .env.local file with a valid MongoDB connection string.\n` +
+    `Example: mongodb://localhost:27017/fitura or mongodb+srv://username:password@cluster.mongodb.net/fitura`
+  );
+}
 
-// Initialize database tables
+interface MongooseCache {
+  conn: Mongoose | null;
+  promise: Promise<Mongoose> | null;
+}
+
+// Use global cache to prevent multiple connections in development
+declare global {
+  var mongoose: MongooseCache | undefined;
+}
+
+let cached: MongooseCache = global.mongoose || { conn: null, promise: null };
+
+if (!global.mongoose) {
+  global.mongoose = cached;
+}
+
+async function connectDB(): Promise<Mongoose> {
+  if (cached.conn) {
+    console.log('✓ Using cached MongoDB connection');
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+
+    // Log connection attempt (mask password in URI)
+    const maskedUri = MONGODB_URI.replace(/(mongodb:\/\/[^:]+:)([^@]+)(@)/, '$1****$3');
+    console.log('Connecting to MongoDB...');
+    console.log(`Connection URI: ${maskedUri}`);
+    
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance: Mongoose) => {
+      console.log('✓ MongoDB connected successfully');
+      return mongooseInstance;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached.conn;
+}
+
+export default connectDB;
+
+// Initialize database with default data
 export async function initDatabase() {
   try {
-    const membershipsTable = getTableName('memberships')
-    const clientsTable = getTableName('clients')
-    const attendanceTable = getTableName('attendance')
-
-    // Create memberships table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS ${membershipsTable} (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL UNIQUE,
-        description TEXT,
-        duration_days INTEGER NOT NULL,
-        price DECIMAL(10, 2),
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
-
-    // Create clients table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS ${clientsTable} (
-        id SERIAL PRIMARY KEY,
-        first_name VARCHAR(255) NOT NULL,
-        last_name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        phone VARCHAR(50) NOT NULL,
-        date_of_birth DATE NOT NULL,
-        age INTEGER,
-        height DECIMAL(5, 2),
-        weight DECIMAL(5, 2),
-        gender VARCHAR(20),
-        blood_group VARCHAR(5),
-        bmi DECIMAL(5, 2),
-        aadhar_number VARCHAR(12),
-        photo_url TEXT,
-        address TEXT,
-        membership_type INTEGER REFERENCES ${membershipsTable}(id),
-        joining_date DATE,
-        expiry_date DATE,
-        membership_fee DECIMAL(10, 2),
-        discount DECIMAL(10, 2) DEFAULT 0,
-        payment_date DATE,
-        payment_mode VARCHAR(20),
-        transaction_id VARCHAR(255),
-        paid_amount DECIMAL(10, 2),
-        emergency_contact_name VARCHAR(255) NOT NULL,
-        emergency_contact_phone VARCHAR(50) NOT NULL,
-        medical_conditions TEXT,
-        fitness_goals TEXT,
-        first_time_in_gym VARCHAR(10),
-        previous_gym_details TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
-
-    // Create index on email for faster lookups
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_${clientsTable}_email ON ${clientsTable}(email)
-    `)
-
-    // Create attendance table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS ${attendanceTable} (
-        id SERIAL PRIMARY KEY,
-        client_id INTEGER NOT NULL REFERENCES ${clientsTable}(id) ON DELETE CASCADE,
-        attendance_date DATE NOT NULL,
-        attendance_time TIME NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(client_id, attendance_date, attendance_time)
-      )
-    `)
-
-    // Create indexes for attendance table
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_${attendanceTable}_client_id ON ${attendanceTable}(client_id)
-    `)
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_${attendanceTable}_date ON ${attendanceTable}(attendance_date)
-    `)
-
-    // Add new columns if they don't exist (for existing databases)
-    try {
-      await pool.query(`
-        ALTER TABLE ${clientsTable} 
-        ADD COLUMN IF NOT EXISTS blood_group VARCHAR(5),
-        ADD COLUMN IF NOT EXISTS bmi DECIMAL(5, 2),
-        ADD COLUMN IF NOT EXISTS photo_url TEXT,
-        ADD COLUMN IF NOT EXISTS joining_date DATE,
-        ADD COLUMN IF NOT EXISTS expiry_date DATE,
-        ADD COLUMN IF NOT EXISTS membership_fee DECIMAL(10, 2),
-        ADD COLUMN IF NOT EXISTS discount DECIMAL(10, 2) DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS payment_date DATE,
-        ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20),
-        ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(255),
-        ADD COLUMN IF NOT EXISTS paid_amount DECIMAL(10, 2)
-      `)
-    } catch (error) {
-      // Columns might already exist, ignore error
-      console.log('Note: Some columns may already exist')
+    await connectDB();
+    
+    // Import models to ensure they're registered
+    await import('./models/Membership');
+    await import('./models/Client');
+    await import('./models/Attendance');
+    
+    // Create default memberships if they don't exist
+    const Membership = (await import('./models/Membership')).default;
+    const membershipCount = await Membership.countDocuments();
+    
+    if (membershipCount === 0) {
+      await Membership.insertMany([
+        { membershipId: 1, name: 'Monthly', description: 'Monthly membership', durationDays: 30, price: 0, isActive: true },
+        { membershipId: 2, name: 'Quarterly', description: 'Quarterly membership (3 months)', durationDays: 90, price: 0, isActive: true },
+        { membershipId: 3, name: 'Yearly', description: 'Yearly membership', durationDays: 365, price: 0, isActive: true },
+        { membershipId: 4, name: 'Day Pass', description: 'Single day pass', durationDays: 1, price: 0, isActive: true },
+        { membershipId: 5, name: 'Trial', description: 'Trial membership (7 days)', durationDays: 7, price: 0, isActive: true },
+      ]);
+      console.log('✓ Default memberships created');
     }
-
-    // Insert default memberships if table is empty
-    const membershipCount = await pool.query(`SELECT COUNT(*) FROM ${membershipsTable}`)
-    if (parseInt(membershipCount.rows[0].count) === 0) {
-      await pool.query(`
-        INSERT INTO ${membershipsTable} (name, description, duration_days, price, is_active) VALUES
-        ('Monthly', 'Monthly membership', 30, 0, true),
-        ('Quarterly', 'Quarterly membership (3 months)', 90, 0, true),
-        ('Yearly', 'Yearly membership', 365, 0, true),
-        ('Day Pass', 'Single day pass', 1, 0, true),
-        ('Trial', 'Trial membership (7 days)', 7, 0, true)
-      `)
-    }
-
-    console.log('Database initialized successfully')
+    
+    console.log('✓ Database initialized successfully');
   } catch (error) {
-    console.error('Error initializing database:', error)
-    throw error
+    console.error('Error initializing database:', error);
+    throw error;
   }
 }
-
-export default pool
-

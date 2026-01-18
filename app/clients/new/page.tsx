@@ -61,7 +61,7 @@ export default function NewClientPage() {
   // Calculate membership fee when membership type or discount changes
   useEffect(() => {
     if (formData.membershipType) {
-      const selectedMembership = memberships.find(m => m.id.toString() === formData.membershipType)
+      const selectedMembership = memberships.find(m => m.membershipId.toString() === formData.membershipType)
       if (selectedMembership) {
         const fee = selectedMembership.price || 0
         const discount = parseFloat(formData.discount) || 0
@@ -93,7 +93,7 @@ export default function NewClientPage() {
   // Calculate expiry date when joining date or membership type changes
   useEffect(() => {
     if (formData.joiningDate && formData.membershipType) {
-      const selectedMembership = memberships.find(m => m.id.toString() === formData.membershipType)
+      const selectedMembership = memberships.find(m => m.membershipId.toString() === formData.membershipType)
       if (selectedMembership && selectedMembership.durationDays) {
         const joiningDate = new Date(formData.joiningDate)
         const expiryDate = new Date(joiningDate)
@@ -117,7 +117,7 @@ export default function NewClientPage() {
         const data = await response.json()
         setMemberships(data)
         if (data.length > 0 && !formData.membershipType) {
-          setFormData(prev => ({ ...prev, membershipType: data[0].id.toString() }))
+          setFormData(prev => ({ ...prev, membershipType: data[0].membershipId.toString() }))
         }
       }
     } catch (error) {
@@ -171,7 +171,7 @@ export default function NewClientPage() {
     setLoading(true)
 
     try {
-      let photoUrl = formData.photoUrl
+      let photoUrl = formData.photoUrl || ''
 
       // Upload photo if a new file is selected
       if (photoFile) {
@@ -188,6 +188,7 @@ export default function NewClientPage() {
           if (uploadResponse.ok) {
             const uploadData = await uploadResponse.json()
             photoUrl = uploadData.url
+            console.log('Photo uploaded successfully:', photoUrl)
           } else {
             const error = await uploadResponse.json()
             // If blob storage is not configured, allow form submission without photo
@@ -195,27 +196,34 @@ export default function NewClientPage() {
               console.warn('Blob storage not configured, proceeding without photo upload')
               photoUrl = ''
             } else {
+              console.error('Photo upload error:', error)
               alert(error.error || 'Failed to upload photo. You can still submit the form without a photo.')
-              // Don't return, allow form submission to continue
+              photoUrl = ''
             }
           }
         } catch (error) {
           console.error('Error uploading photo:', error)
           // Allow form submission to continue even if photo upload fails
           alert('Photo upload failed. You can still submit the form without a photo.')
+          photoUrl = ''
         } finally {
           setUploadingPhoto(false)
         }
       }
+      
+      console.log('Creating client with photoUrl:', photoUrl, 'photoUrl type:', typeof photoUrl, 'photoUrl length:', photoUrl?.length)
 
+      // Remove photoUrl from formData before spreading to avoid overriding
+      const { photoUrl: _, ...formDataWithoutPhotoUrl } = formData
+      
       const response = await fetch('/api/clients', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
-          photoUrl,
+          ...formDataWithoutPhotoUrl,
+          photoUrl: photoUrl || undefined, // Only include photoUrl if it has a value
           membershipFee: formData.membershipFee ? parseFloat(formData.membershipFee) : undefined,
           discount: formData.discount ? parseFloat(formData.discount) : undefined,
           paidAmount: formData.paidAmount ? parseFloat(formData.paidAmount) : undefined,
@@ -303,7 +311,7 @@ export default function NewClientPage() {
                     onChange={handlePhotoChange}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-fitura-blue file:text-white hover:file:bg-fitura-purple-600 file:cursor-pointer"
                   />
-                  <p className="mt-1 text-xs text-gray-500">JPG, PNG or GIF (max. 5MB)</p>
+                  <p className="mt-1 text-xs text-gray-500">JPG, PNG or GIF (max. 10MB, will be resized to 1080x1920)</p>
                 </div>
               </div>
             </div>
@@ -552,8 +560,8 @@ export default function NewClientPage() {
                     {memberships.length === 0 ? (
                       <option value="">No memberships available</option>
                     ) : (
-                      memberships.map((membership) => (
-                        <option key={membership.id} value={membership.id}>
+                    memberships.map((membership) => (
+                      <option key={membership.membershipId} value={membership.membershipId}>
                           {membership.name}
                           {membership.description && ` - ${membership.description}`}
                         </option>
@@ -712,7 +720,7 @@ export default function NewClientPage() {
             <div className="mt-6">
               <div>
                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
-                  Address
+                  Address <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -721,6 +729,7 @@ export default function NewClientPage() {
                   value={formData.address}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
+                  required
                 />
               </div>
             </div>

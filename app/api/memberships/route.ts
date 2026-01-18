@@ -54,19 +54,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(membership, { status: 201 })
   } catch (error: any) {
     console.error('Error creating membership:', error)
-    if (error.code === '23505') {
-      // Unique constraint violation
+    if (error.code === 11000 || error.code === '11000') {
+      // MongoDB duplicate key error
       return NextResponse.json(
         { error: 'A membership with this name already exists' },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to create membership' },
+      { error: 'Failed to create membership', details: error.message },
       { status: 500 }
     )
   }
 }
+
 
 
 

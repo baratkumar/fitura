@@ -3,12 +3,28 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Clock, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Clock, CheckCircle2, AlertCircle, X } from 'lucide-react'
+
+interface ClientInfo {
+  clientId: string
+  firstName: string
+  lastName: string
+  photoUrl?: string
+}
+
+interface SuccessData {
+  status: 'IN' | 'OUT'
+  inTime: string
+  outTime?: string
+  duration?: string
+  client: ClientInfo
+}
 
 export default function AttendancePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [successData, setSuccessData] = useState<SuccessData | null>(null)
+  const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     clientId: '',
@@ -37,14 +53,18 @@ export default function AttendancePage() {
     }))
     // Clear error and success messages when user types
     if (error) setError('')
-    if (success) setSuccess(false)
+    if (successData) {
+      setSuccessData(null)
+      setShowModal(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-    setSuccess(false)
+    setSuccessData(null)
+    setShowModal(false)
 
     try {
       const response = await fetch('/api/attendance', {
@@ -53,7 +73,7 @@ export default function AttendancePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          clientId: parseInt(formData.clientId),
+          clientId: formData.clientId,
           attendanceDate: formData.date,
           attendanceTime: formData.time,
         }),
@@ -62,7 +82,35 @@ export default function AttendancePage() {
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess(true)
+        // Fetch client info to show in modal
+        const clientResponse = await fetch(`/api/clients/${formData.clientId}`)
+        let client: ClientInfo | null = null
+        
+        if (clientResponse.ok) {
+          const clientData = await clientResponse.json()
+          client = {
+            clientId: clientData.clientId.toString(),
+            firstName: clientData.firstName,
+            lastName: clientData.lastName,
+            photoUrl: clientData.photoUrl,
+          }
+        }
+        
+        // Set success data with attendance and client info
+        setSuccessData({
+          status: data.status || 'IN',
+          inTime: data.inTime,
+          outTime: data.outTime,
+          duration: data.duration,
+          client: client || {
+            clientId: formData.clientId,
+            firstName: '',
+            lastName: 'Client',
+            photoUrl: undefined,
+          },
+        })
+        setShowModal(true)
+        
         // Reset form and refresh date/time to current values
         const now = new Date()
         const currentDate = now.toISOString().split('T')[0]
@@ -73,8 +121,6 @@ export default function AttendancePage() {
           date: currentDate,
           time: currentTime,
         })
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(false), 3000)
       } else {
         // Show user-friendly error message
         let errorMessage = data.error || 'Failed to record attendance'
@@ -122,7 +168,7 @@ export default function AttendancePage() {
               Client ID <span className="text-red-500">*</span>
             </label>
             <input
-              type="number"
+              type="text"
               id="clientId"
               name="clientId"
               value={formData.clientId}
@@ -130,9 +176,8 @@ export default function AttendancePage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
               placeholder="Enter client ID"
               required
-              min="1"
             />
-            <p className="mt-1 text-xs text-gray-500">Enter the client&apos;s ID number</p>
+            <p className="mt-1 text-xs text-gray-500">Enter the client&apos;s ID. First entry for the day = IN, second entry = OUT</p>
           </div>
 
           {/* Date */}
@@ -169,13 +214,6 @@ export default function AttendancePage() {
             <p className="mt-1 text-xs text-gray-500">Attendance time (pre-populated with current time)</p>
           </div>
 
-          {/* Success Message */}
-          {success && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              <p className="text-green-800 font-medium">Attendance recorded successfully!</p>
-            </div>
-          )}
 
           {/* Error Message */}
           {error && (
@@ -198,6 +236,119 @@ export default function AttendancePage() {
           </div>
         </form>
       </div>
+
+      {/* Success Modal */}
+      {showModal && successData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close modal"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Success Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10 text-green-600" />
+              </div>
+            </div>
+
+            {/* Client Photo */}
+            <div className="flex justify-center mb-4">
+              {successData.client.photoUrl ? (
+                <img
+                  src={successData.client.photoUrl}
+                  alt={`${successData.client.firstName} ${successData.client.lastName}`}
+                  className="w-32 h-32 object-cover rounded-full border-4 border-green-200 shadow-lg"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div className="w-32 h-32 bg-gray-200 rounded-full border-4 border-green-200 shadow-lg flex items-center justify-center">
+                  <span className="text-gray-400 text-2xl font-semibold">
+                    {successData.client.firstName?.[0] || successData.client.clientId[0] || '?'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Client Name */}
+            <div className="text-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-1">
+                {successData.client.firstName && successData.client.lastName
+                  ? `${successData.client.firstName} ${successData.client.lastName}`
+                  : `Client ID: ${successData.client.clientId}`}
+              </h3>
+              {successData.client.firstName && successData.client.lastName && (
+                <p className="text-sm text-gray-500">ID: {successData.client.clientId}</p>
+              )}
+            </div>
+
+            {/* Status Badge */}
+            <div className="flex justify-center mb-4">
+              <span
+                className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${
+                  successData.status === 'IN'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800'
+                }`}
+              >
+                {successData.status === 'IN' ? '✓ Checked IN' : '✓ Checked OUT'}
+              </span>
+            </div>
+
+            {/* Time Information */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">IN Time:</span>
+                  <span className="font-semibold text-gray-900">
+                    {new Date(`2000-01-01T${successData.inTime}`).toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+                {successData.outTime && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">OUT Time:</span>
+                    <span className="font-semibold text-gray-900">
+                      {new Date(`2000-01-01T${successData.outTime}`).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                )}
+                {successData.duration && (
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                    <span className="text-gray-600 font-medium">Duration:</span>
+                    <span className="font-bold text-blue-600">{successData.duration}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Success Message */}
+            <p className="text-center text-sm text-gray-600 mb-4">
+              Attendance recorded successfully! The system will automatically toggle between IN and OUT for the same member on the same day.
+            </p>
+
+            {/* OK Button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="w-full bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

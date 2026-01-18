@@ -6,14 +6,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id)
-    
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid client ID' },
-        { status: 400 }
-      )
-    }
+    const id = params.id;
 
     const client = await getClient(id)
     
@@ -38,14 +31,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id)
-    
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid client ID' },
-        { status: 400 }
-      )
-    }
+    const id = params.id;
 
     const success = await deleteClient(id)
     
@@ -73,17 +59,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id)
-    
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid client ID' },
-        { status: 400 }
-      )
-    }
+    const id = params.id;
 
     const body = await request.json()
+    console.log('[PUT /api/clients/:id] Received request body. photoUrl:', body.photoUrl, 'typeof:', typeof body.photoUrl)
     const updatedClient = await updateClient(id, body)
+    console.log('[PUT /api/clients/:id] Updated client. photoUrl:', updatedClient?.photoUrl)
     
     if (!updatedClient) {
       return NextResponse.json(

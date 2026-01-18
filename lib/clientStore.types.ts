@@ -1,7 +1,7 @@
 // Client data types for gym members
 
 export interface Client {
-  id: number
+  clientId: number // Primary identifier - running number starting from 1
   firstName: string
   lastName: string
   email: string

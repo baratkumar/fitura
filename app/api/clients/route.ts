@@ -17,6 +17,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('[POST /api/clients] Received request body. photoUrl:', body.photoUrl, 'typeof:', typeof body.photoUrl)
     const {
       firstName,
       lastName,
@@ -48,11 +49,12 @@ export async function POST(request: NextRequest) {
       firstTimeInGym,
       previousGymDetails,
     } = body
+    console.log('[POST /api/clients] Extracted photoUrl:', photoUrl, 'typeof:', typeof photoUrl)
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !phone || !dateOfBirth || !membershipType || !emergencyContactName || !emergencyContactPhone) {
+    if (!firstName || !lastName || !email || !phone || !dateOfBirth || !membershipType || !address || address.trim() === '' || !emergencyContactName || !emergencyContactPhone) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields. Please fill in all required fields including address.' },
         { status: 400 }
       )
     }
@@ -74,6 +76,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate membershipType before creating client
+    if (membershipType) {
+      const membershipIdNum = parseInt(membershipType);
+      // If it's a huge number, it's likely a MongoDB ObjectId - reject it
+      if (!isNaN(membershipIdNum) && membershipIdNum > 100000) {
+        return NextResponse.json(
+          { error: 'Invalid membership selected. Please refresh the page and select a membership again.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    console.log('[POST /api/clients] Calling addClient with photoUrl:', photoUrl)
     const newClient = await addClient({
       firstName,
       lastName,
@@ -87,7 +102,7 @@ export async function POST(request: NextRequest) {
       bloodGroup: bloodGroup || undefined,
       bmi: bmi ? parseFloat(bmi) : undefined,
       aadharNumber: aadharNumber || undefined,
-      photoUrl: photoUrl || undefined,
+      photoUrl: photoUrl && photoUrl.trim() !== '' ? photoUrl.trim() : undefined, // Only include non-empty photoUrl
       address: address || '',
       membershipType,
       joiningDate: joiningDate || undefined,
@@ -111,30 +126,35 @@ export async function POST(request: NextRequest) {
     console.error('Error creating client:', error)
     
     // Provide more specific error messages
-    if (error.code === '23503') {
-      // Foreign key constraint violation
+    if (error.code === 11000 || error.code === '11000') {
+      // MongoDB duplicate key error (unique constraint)
+      if (error.message?.includes('email')) {
+        return NextResponse.json(
+          { error: 'A client with this email already exists' },
+          { status: 400 }
+        )
+      }
+      return NextResponse.json(
+        { error: 'Duplicate entry. This record already exists.' },
+        { status: 400 }
+      )
+    }
+    
+    if (error.name === 'CastError' || error.message?.includes('Cast to ObjectId')) {
       return NextResponse.json(
         { error: 'Invalid membership type selected' },
         { status: 400 }
       )
     }
     
-    if (error.code === '23505') {
-      // Unique constraint violation
-      return NextResponse.json(
-        { error: 'A client with this email already exists' },
-        { status: 400 }
-      )
-    }
-    
-    if (error.code === '42703') {
-      // Column does not exist
+    // Handle membership not found errors
+    if (error.message?.includes('Membership with ID') || error.message?.includes('Membership not found') || error.message?.includes('Invalid membership ID')) {
       return NextResponse.json(
         { 
-          error: 'Database schema is out of date. Please run /api/init-db to update the database.',
-          details: error.message 
+          error: error.message || 'Invalid membership selected. Please refresh the page and select a valid membership.',
+          hint: 'The membership you selected may have been deleted. Please refresh the page and try again.'
         },
-        { status: 500 }
+        { status: 400 }
       )
     }
     

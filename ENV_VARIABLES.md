@@ -11,17 +11,25 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=sb_publishable_qtlP4EsDCZ_jLcpJg7Pt
 ```
 
 ### Database Configuration
+
+**Option 1: Use DATABASE_URL (Recommended for local development)**
+```
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.oyhjmwkrpdgwrbufgucg.supabase.co:5432/postgres
+```
+
+**Option 2: Use separate variables**
 ```
 DB_PASSWORD=your_supabase_database_password_here
 ```
 
-**How to get DB_PASSWORD:**
+**How to get connection details:**
 1. Go to Supabase Dashboard
 2. Navigate to: Settings → Database
 3. Find "Connection string" section
-4. Copy the password from the connection string:
+4. Copy the entire connection string for `DATABASE_URL`, or just the password for `DB_PASSWORD`
    - Format: `postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres`
-   - Extract the `[PASSWORD]` part
+   
+**Note:** If you're having DNS resolution issues locally, use `DATABASE_URL` with the full connection string instead.
 
 ### Environment Configuration
 ```

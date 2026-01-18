@@ -6,14 +6,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id)
-    
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid attendance ID' },
-        { status: 400 }
-      )
-    }
+    const id = params.id;
 
     const deleted = await deleteAttendance(id)
     
@@ -33,6 +26,7 @@ export async function DELETE(
     )
   }
 }
+
 
 
 

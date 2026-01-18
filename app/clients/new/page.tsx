@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 interface Membership {
-  id: number
+  membershipId: number
   name: string
   description?: string
   durationDays: number

@@ -73,13 +73,13 @@ export async function POST(request: NextRequest) {
     const originalName = file.name.replace(/\.[^/.]+$/, '') // Remove original extension
     const filename = `client-photos/${timestamp}-${originalName}.jpg`
 
-    // Create a new File object from the resized buffer
-    const resizedFile = new File([resizedBuffer], `${originalName}.jpg`, {
-      type: 'image/jpeg',
-    })
+    // Create a Blob from the resized buffer
+    // Convert Buffer to Uint8Array for Blob compatibility
+    const uint8Array = new Uint8Array(resizedBuffer)
+    const resizedBlob = new Blob([uint8Array], { type: 'image/jpeg' })
 
     // Upload to Vercel Blob
-    const blob = await put(filename, resizedFile, {
+    const blob = await put(filename, resizedBlob, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
     })

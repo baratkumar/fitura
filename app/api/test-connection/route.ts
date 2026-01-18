@@ -1,213 +1,127 @@
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
-
-// Test connection strings - try both direct and pooler with sslmode=require
-const connectionStrings = {
-  direct: 'postgresql://postgres:FmTXmOaxD5Q6vUzD@db.oyhjmwkrpdgwrbufgucg.supabase.co:5432/postgres?sslmode=require',
-  pooler: 'postgres://postgres:FmTXmOaxD5Q6vUzD@db.oyhjmwkrpdgwrbufgucg.supabase.co:6543/postgres?sslmode=require',
-  poolerPostgresql: 'postgresql://postgres:FmTXmOaxD5Q6vUzD@db.oyhjmwkrpdgwrbufgucg.supabase.co:6543/postgres?sslmode=require',
-  // Session mode pooler (aws region pooler)
-  sessionPooler: 'postgresql://postgres.oyhjmwkrpdgwrbufgucg:FmTXmOaxD5Q6vUzD@aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require',
-};
-
-async function testConnection(connectionString: string, label: string) {
-  const pool = new Pool({
-    connectionString: connectionString,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-    connectionTimeoutMillis: 10000,
-  });
-
-  try {
-    const startTime = Date.now();
-    const result = await pool.query('SELECT NOW() as current_time, version() as pg_version');
-    const connectTime = Date.now() - startTime;
-
-    const tablesResult = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      ORDER BY table_name
-      LIMIT 20
-    `);
-
-    await pool.end();
-
-    return {
-      success: true,
-      method: label,
-      connectionTime: `${connectTime}ms`,
-      currentTime: result.rows[0].current_time,
-      postgresVersion: result.rows[0].pg_version.split(' ')[0] + ' ' + result.rows[0].pg_version.split(' ')[1],
-      tablesFound: tablesResult.rows.length,
-      tables: tablesResult.rows.map(row => row.table_name),
-    };
-  } catch (error: any) {
-    await pool.end().catch(() => {});
-    return {
-      success: false,
-      method: label,
-      error: error.message,
-      code: error.code || 'UNKNOWN',
-    };
-  }
-}
-
-async function testConnectionWithParams(host: string, port: number, database: string, user: string, password: string, label: string) {
-  const pool = new Pool({
-    host: host,
-    port: port,
-    database: database,
-    user: user,
-    password: password,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-    connectionTimeoutMillis: 10000,
-  });
-
-  try {
-    const startTime = Date.now();
-    const result = await pool.query('SELECT NOW() as current_time, version() as pg_version');
-    const connectTime = Date.now() - startTime;
-
-    const tablesResult = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      ORDER BY table_name
-      LIMIT 20
-    `);
-
-    await pool.end();
-
-    return {
-      success: true,
-      method: label,
-      connectionTime: `${connectTime}ms`,
-      currentTime: result.rows[0].current_time,
-      postgresVersion: result.rows[0].pg_version.split(' ')[0] + ' ' + result.rows[0].pg_version.split(' ')[1],
-      tablesFound: tablesResult.rows.length,
-      tables: tablesResult.rows.map(row => row.table_name),
-    };
-  } catch (error: any) {
-    await pool.end().catch(() => {});
-    return {
-      success: false,
-      method: label,
-      error: error.message,
-      code: error.code || 'UNKNOWN',
-    };
-  }
-}
+import connectDB from '@/lib/db';
+import mongoose from 'mongoose';
 
 export async function GET() {
-  console.log('Testing Supabase connection...');
+  console.log('🔍 Testing MongoDB Connection...');
   
-  const password = 'FmTXmOaxD5Q6vUzD';
-  const host = 'db.oyhjmwkrpdgwrbufgucg.supabase.co';
-  const port = 5432;
-  const database = 'postgres';
-  const user = 'postgres';
-  
-  // Try connection with individual parameters first (as requested)
-  console.log('Attempting connection with individual parameters...');
-  const paramsResult = await testConnectionWithParams(host, port, database, user, password, 'Individual Parameters');
-  
-  if (paramsResult.success) {
+  try {
+    const startTime = Date.now();
+    
+    // Connect to MongoDB
+    await connectDB();
+    const connectTime = Date.now() - startTime;
+    
+    // Get connection info
+    const connection = mongoose.connection;
+    
+    // Import models to test queries
+    const Client = (await import('@/lib/models/Client')).default;
+    const Membership = (await import('@/lib/models/Membership')).default;
+    const Attendance = (await import('@/lib/models/Attendance')).default;
+    
+    // Test database operations
+    const clientCount = await Client.countDocuments();
+    const membershipCount = await Membership.countDocuments();
+    const attendanceCount = await Attendance.countDocuments();
+    
+    // Get collection names
+    const collections = await connection.db?.listCollections().toArray();
+    const collectionNames = collections?.map(c => c.name) || [];
+    
+    // Get MongoDB server info
+    const adminDb = connection.db?.admin();
+    let serverInfo = null;
+    if (adminDb) {
+      try {
+        serverInfo = await adminDb.serverStatus();
+      } catch (e) {
+        // May not have admin permissions
+      }
+    }
+    
     return NextResponse.json({
       success: true,
-      message: 'Connection successful using individual parameters!',
-      details: paramsResult,
-      connectionMethod: 'Individual parameters (host, port, database, user)',
+      message: 'MongoDB connection successful!',
+      connection: {
+        method: 'MongoDB via Mongoose',
+        connectionTime: `${connectTime}ms`,
+        host: connection.host || 'unknown',
+        port: connection.port || 'unknown',
+        name: connection.name || 'unknown',
+        readyState: connection.readyState === 1 ? 'connected' : 'disconnected',
+      },
+      database: {
+        name: connection.db?.databaseName || 'unknown',
+        collectionsFound: collectionNames.length,
+        collections: collectionNames,
+      },
+      counts: {
+        clients: clientCount,
+        memberships: membershipCount,
+        attendance: attendanceCount,
+      },
+      server: serverInfo ? {
+        version: serverInfo.version,
+        uptime: `${Math.floor(serverInfo.uptime / 3600)}h ${Math.floor((serverInfo.uptime % 3600) / 60)}m`,
+      } : null,
+      environment: {
+        nodeEnv: process.env.NODE_ENV || 'not set',
+        mongodbUri: process.env.MONGODB_URI ? 'set (masked)' : 'not set',
+        databaseUrl: process.env.DATABASE_URL ? 'set (masked)' : 'not set',
+      },
     });
-  }
-
-  // If individual params fail, try connection string (port 5432)
-  console.log('Individual parameters failed. Trying connection string (port 5432)...');
-  const directResult = await testConnection(connectionStrings.direct, 'Connection String (5432)');
-  
-  if (directResult.success) {
-    return NextResponse.json({
-      success: true,
-      message: 'Connection successful via connection string!',
-      details: directResult,
-    });
-  }
-
-  // Try pooler (port 6543) - recommended for serverless
-  console.log('Trying connection pooler (port 6543)...');
-  const poolerResult = await testConnection(connectionStrings.pooler, 'Pooler postgres:// (6543)');
-  const poolerPostgresqlResult = await testConnection(connectionStrings.poolerPostgresql, 'Pooler postgresql:// (6543)');
-  const sessionPoolerResult = await testConnection(connectionStrings.sessionPooler, 'Session Pooler (aws-1-ap-south-1)');
-  
-  // Also try pooler with individual params
-  const poolerParamsResult = await testConnectionWithParams(host, 6543, database, user, password, 'Pooler Parameters (6543)');
-  
-  if (poolerResult.success || poolerPostgresqlResult.success || sessionPoolerResult.success || poolerParamsResult.success) {
-    const successfulResult = poolerResult.success ? poolerResult : 
-                             (poolerPostgresqlResult.success ? poolerPostgresqlResult : 
-                             (sessionPoolerResult.success ? sessionPoolerResult : poolerParamsResult));
-    return NextResponse.json({
-      success: true,
-      message: 'Connection successful via connection pooler!',
-      details: successfulResult,
-      note: 'Use connection pooler for serverless environments.',
-      recommendedConnectionString: sessionPoolerResult.success 
-        ? 'postgresql://postgres.oyhjmwkrpdgwrbufgucg:FmTXmOaxD5Q6vUzD@aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require'
-        : 'postgres://postgres:FmTXmOaxD5Q6vUzD@db.oyhjmwkrpdgwrbufgucg.supabase.co:6543/postgres?sslmode=require',
-    });
-  }
-
-  // If direct fails with DNS error and pooler also fails
-  if (directResult.code === 'ENOTFOUND' || paramsResult.code === 'ENOTFOUND') {
-
-    // All methods failed
+  } catch (error: any) {
+    console.error('❌ MongoDB connection failed:', error);
+    
+    const troubleshooting: any = {
+      possibleCauses: [],
+      nextSteps: [],
+    };
+    
+    if (error.message?.includes('ENOTFOUND') || error.code === 'ENOTFOUND') {
+      troubleshooting.dnsError = 'DNS resolution failed for MongoDB hostname';
+      troubleshooting.possibleCauses.push('1. MongoDB Atlas cluster is paused or deleted');
+      troubleshooting.possibleCauses.push('2. Incorrect connection string hostname');
+      troubleshooting.possibleCauses.push('3. Network/DNS issue - Check your internet connection');
+      troubleshooting.nextSteps.push('1. Verify MONGODB_URI environment variable is set correctly');
+      troubleshooting.nextSteps.push('2. Check MongoDB Atlas Dashboard for cluster status');
+      troubleshooting.nextSteps.push('3. Ensure cluster is active and accessible');
+    } else if (error.message?.includes('authentication') || error.code === 18 || error.code === 'AuthFailed') {
+      troubleshooting.authError = 'Authentication failed';
+      troubleshooting.possibleCauses.push('1. Incorrect username or password in connection string');
+      troubleshooting.possibleCauses.push('2. User does not have access to the database');
+      troubleshooting.nextSteps.push('1. Verify MONGODB_URI credentials are correct');
+      troubleshooting.nextSteps.push('2. Check MongoDB Atlas → Database Access for user permissions');
+    } else if (error.message?.includes('MongoNetworkError') || error.code === 'MongoNetworkError') {
+      troubleshooting.networkError = 'Network error';
+      troubleshooting.possibleCauses.push('1. Network connectivity issue');
+      troubleshooting.possibleCauses.push('2. Firewall blocking MongoDB connections');
+      troubleshooting.possibleCauses.push('3. MongoDB Atlas IP whitelist restrictions');
+      troubleshooting.nextSteps.push('1. Check your internet connection');
+      troubleshooting.nextSteps.push('2. Verify IP is whitelisted in MongoDB Atlas → Network Access');
+      troubleshooting.nextSteps.push('3. Ensure firewall allows MongoDB connections (port 27017 or 27017-27019)');
+    } else {
+      troubleshooting.possibleCauses.push('1. Check your environment variables (MONGODB_URI or DATABASE_URL)');
+      troubleshooting.possibleCauses.push('2. Verify MongoDB credentials are correct');
+      troubleshooting.possibleCauses.push('3. Check network connectivity');
+      troubleshooting.nextSteps.push('1. Verify MONGODB_URI is set correctly');
+      troubleshooting.nextSteps.push('2. Check MongoDB Atlas Dashboard');
+      troubleshooting.nextSteps.push('3. Review error details below');
+    }
+    
     return NextResponse.json(
       {
         success: false,
-        message: 'All connection methods failed',
-        attempts: [paramsResult, directResult, poolerResult, poolerPostgresqlResult, sessionPoolerResult, poolerParamsResult],
-        troubleshooting: {
-          dnsError: 'DNS resolution failed for all methods. This usually means:',
-          possibleCauses: [
-            '1. Supabase project is paused - Go to https://supabase.com/dashboard and check project status',
-            '2. Project reference is incorrect - Verify the project ID: oyhjmwkrpdgwrbufgucg',
-            '3. Network/DNS issue - Check your internet connection',
-            '4. Firewall blocking - Check if port 5432/6543 are blocked',
-          ],
-          nextSteps: [
-            '1. Visit https://supabase.com/dashboard/project/oyhjmwkrpdgwrbufgucg',
-            '2. Check if project shows "Paused" - if so, click "Resume"',
-            '3. Go to Settings → Database → Connection string',
-            '4. Copy the correct connection string from the dashboard',
-          ],
+        message: 'MongoDB connection failed',
+        error: error.message || 'Unknown error',
+        code: error.code || 'UNKNOWN',
+        details: {
+          errorType: error.name || 'Error',
+          troubleshooting,
         },
       },
       { status: 500 }
     );
   }
-
-  // Connection failed with non-DNS error
-  return NextResponse.json(
-    {
-      success: false,
-      message: 'Connection failed',
-      attempts: [paramsResult, directResult],
-      error: paramsResult.error || directResult.error,
-      code: paramsResult.code || directResult.code,
-      details: {
-        hostname: host,
-        port: port,
-        troubleshooting: {
-          dnsError: (paramsResult.code === 'ENOTFOUND' || directResult.code === 'ENOTFOUND') ? 'DNS resolution failed. Check if Supabase project is active.' : null,
-          authError: (paramsResult.code === '28P01' || directResult.code === '28P01') ? 'Authentication failed. Check password.' : null,
-          timeoutError: (paramsResult.code === 'ETIMEDOUT' || directResult.code === 'ETIMEDOUT') ? 'Connection timeout. Try port 6543 (connection pooler).' : null,
-        },
-      },
-    },
-    { status: 500 }
-  );
 }
-

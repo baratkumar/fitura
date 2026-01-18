@@ -6,9 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "test:db": "npx tsx scripts/test-db-connection.ts",
-    "test:connection": "npx tsx scripts/test-connection.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "react": "^18.2.0",

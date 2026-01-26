@@ -239,8 +239,8 @@ export default function AttendancePage() {
 
       {/* Success Modal */}
       {showModal && successData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative my-8 max-h-[90vh] overflow-y-auto">
             {/* Close Button */}
             <button
               onClick={() => setShowModal(false)}
@@ -263,13 +263,13 @@ export default function AttendancePage() {
                 <img
                   src={successData.client.photoUrl}
                   alt={`${successData.client.firstName} ${successData.client.lastName}`}
-                  className="w-[350px] h-[350px] object-cover rounded-full border-4 border-green-200 shadow-lg"
+                  className="w-[350px] h-[350px] object-cover rounded-lg border-4 border-green-200 shadow-lg"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'
                   }}
                 />
               ) : (
-                <div className="w-[350px] h-[350px] bg-gray-200 rounded-full border-4 border-green-200 shadow-lg flex items-center justify-center">
+                <div className="w-[350px] h-[350px] bg-gray-200 rounded-lg border-4 border-green-200 shadow-lg flex items-center justify-center">
                   <span className="text-gray-400 text-6xl font-semibold">
                     {successData.client.firstName?.[0] || successData.client.clientId[0] || '?'}
                   </span>

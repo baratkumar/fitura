@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Users, Edit, Trash2 } from 'lucide-react'
+import { Users, Edit, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Client {
@@ -25,6 +25,7 @@ export default function ClientsPage() {
   const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null)
 
   useEffect(() => {
     fetchClients()
@@ -113,7 +114,11 @@ export default function ClientsPage() {
                           <img
                             src={client.photoUrl}
                             alt={`${client.firstName} ${client.lastName}`}
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-200"
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setSelectedImage({
+                              url: client.photoUrl!,
+                              name: `${client.firstName} ${client.lastName}`
+                            })}
                             onError={(e) => {
                               // Hide image and show fallback on error
                               const target = e.target as HTMLImageElement
@@ -209,6 +214,43 @@ export default function ClientsPage() {
           >
             Register New Client
           </Link>
+        </div>
+      )}
+
+      {/* Image Popup Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 transition-colors z-10"
+              aria-label="Close modal"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            {/* Image */}
+            <img
+              src={selectedImage.url}
+              alt={selectedImage.name}
+              className="w-full h-auto rounded-lg shadow-2xl object-contain max-h-[90vh]"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
+            
+            {/* Client Name */}
+            <div className="absolute bottom-4 left-4 right-4 bg-black/60 text-white px-4 py-2 rounded-lg">
+              <p className="text-lg font-semibold">{selectedImage.name}</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

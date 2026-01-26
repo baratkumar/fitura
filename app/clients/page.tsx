@@ -17,6 +17,7 @@ interface Client {
   membershipFee?: number
   discount?: number
   paidAmount?: number
+  photoUrl?: string
   createdAt: string
 }
 
@@ -93,6 +94,7 @@ export default function ClientsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Expiry Date</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
@@ -105,6 +107,32 @@ export default function ClientsPage() {
                 {clients.map((client) => (
                   <tr key={client.clientId} className="hover:bg-gray-50">
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.clientId}</td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="relative">
+                        {client.photoUrl ? (
+                          <img
+                            src={client.photoUrl}
+                            alt={`${client.firstName} ${client.lastName}`}
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              // Hide image and show fallback on error
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                              const parent = target.parentElement
+                              if (parent) {
+                                const fallback = parent.querySelector('.avatar-fallback') as HTMLElement
+                                if (fallback) fallback.style.display = 'flex'
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`avatar-fallback w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-fitura-blue/10 flex items-center justify-center ${client.photoUrl ? 'hidden' : ''}`}
+                        >
+                          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-fitura-blue" />
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-3 sm:px-6 py-4">
                       <div className="text-sm font-semibold text-gray-900">
                         {client.firstName} {client.lastName}

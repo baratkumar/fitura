@@ -26,6 +26,7 @@ export default function AttendancePage() {
   const [successData, setSuccessData] = useState<SuccessData | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState('')
+  const [countdown, setCountdown] = useState(5)
   const [formData, setFormData] = useState({
     clientId: '',
     date: '',
@@ -45,15 +46,24 @@ export default function AttendancePage() {
     }))
   }, [])
 
-  // Auto-close modal after 5 seconds
+  // Auto-close modal after 5 seconds with countdown
   useEffect(() => {
     if (showModal && successData) {
-      const timer = setTimeout(() => {
-        setShowModal(false)
-        setSuccessData(null)
-      }, 5000) // 5 seconds
+      setCountdown(5) // Reset countdown when modal opens
+      
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval)
+            setShowModal(false)
+            setSuccessData(null)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000) // Update every second
 
-      return () => clearTimeout(timer)
+      return () => clearInterval(countdownInterval)
     }
   }, [showModal, successData])
 
@@ -255,12 +265,23 @@ export default function AttendancePage() {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative my-8 max-h-[90vh] overflow-y-auto">
             {/* Close Button */}
             <button
-              onClick={() => setShowModal(false)}
+              onClick={() => {
+                setShowModal(false)
+                setSuccessData(null)
+              }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Close modal"
             >
               <X className="w-6 h-6" />
             </button>
+
+            {/* Countdown Timer */}
+            <div className="absolute top-4 left-4">
+              <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-semibold">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                <span>Closing in {countdown}s</span>
+              </div>
+            </div>
 
             {/* Success Icon */}
             <div className="flex justify-center mb-4">
@@ -353,7 +374,10 @@ export default function AttendancePage() {
 
             {/* OK Button */}
             <button
-              onClick={() => setShowModal(false)}
+              onClick={() => {
+                setShowModal(false)
+                setSuccessData(null)
+              }}
               className="w-full bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors"
             >
               OK

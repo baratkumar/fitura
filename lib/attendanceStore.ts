@@ -6,6 +6,7 @@ export interface Attendance {
   id: string;
   clientId: string;
   clientName?: string;
+  photoUrl?: string;
   attendanceDate: string;
   inTime: string;
   outTime?: string;
@@ -282,6 +283,8 @@ function mapToAttendance(attendance: any): Attendance {
     ? client.clientId.toString() 
     : (attendance.clientId?._id?.toString() || attendance.clientId?.toString() || '');
   
+  const photoUrl = client?.photoUrl || undefined;
+  
   const inTime = attendance.inTime || attendance.attendanceTime || ''; // Fallback for old records
   const outTime = attendance.outTime || undefined;
   const status = attendance.status || 'IN';
@@ -295,6 +298,7 @@ function mapToAttendance(attendance: any): Attendance {
     id: attendance._id.toString(),
     clientId: clientId,
     clientName,
+    photoUrl,
     attendanceDate: attendance.attendanceDate
       ? attendance.attendanceDate.toISOString().split('T')[0]
       : '',

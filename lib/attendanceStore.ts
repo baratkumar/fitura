@@ -87,7 +87,7 @@ export async function getAllAttendance(): Promise<Attendance[]> {
   await autoCheckoutEndOfDay();
   
   const attendance = await Attendance.find()
-    .populate('clientId', 'firstName lastName clientId')
+    .populate('clientId', 'firstName lastName clientId photoUrl')
     .sort({ attendanceDate: -1, inTime: -1 })
     .lean();
   
@@ -121,7 +121,7 @@ export async function getAttendanceByClientId(clientId: string | number): Promis
   const clientMongoId = client._id;
   
   const attendance = await Attendance.find({ clientId: clientMongoId })
-    .populate('clientId', 'firstName lastName clientId')
+    .populate('clientId', 'firstName lastName clientId photoUrl')
     .sort({ attendanceDate: -1, inTime: -1 })
     .lean();
   
@@ -145,7 +145,7 @@ export async function getAttendanceByDate(date: string): Promise<Attendance[]> {
       $lte: endOfDay,
     },
   })
-    .populate('clientId', 'firstName lastName clientId')
+    .populate('clientId', 'firstName lastName clientId photoUrl')
     .sort({ inTime: -1 })
     .lean();
   

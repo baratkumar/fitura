@@ -263,14 +263,14 @@ export default function AttendancePage() {
                 <img
                   src={successData.client.photoUrl}
                   alt={`${successData.client.firstName} ${successData.client.lastName}`}
-                  className="w-32 h-32 object-cover rounded-full border-4 border-green-200 shadow-lg"
+                  className="w-48 h-48 object-cover rounded-full border-4 border-green-200 shadow-lg"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'
                   }}
                 />
               ) : (
-                <div className="w-32 h-32 bg-gray-200 rounded-full border-4 border-green-200 shadow-lg flex items-center justify-center">
-                  <span className="text-gray-400 text-2xl font-semibold">
+                <div className="w-48 h-48 bg-gray-200 rounded-full border-4 border-green-200 shadow-lg flex items-center justify-center">
+                  <span className="text-gray-400 text-4xl font-semibold">
                     {successData.client.firstName?.[0] || successData.client.clientId[0] || '?'}
                   </span>
                 </div>

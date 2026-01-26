@@ -12,9 +12,11 @@ import { autoCheckoutEndOfDay } from '@/lib/attendanceStore'
  * - GET /api/attendance/auto-checkout - Auto-checkout with default end time (23:59:59)
  * - GET /api/attendance/auto-checkout?endTime=22:00:00 - Auto-checkout with custom end time
  */
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = request.nextUrl
     const endTime = searchParams.get('endTime') || '23:59:59'
     
     // Validate endTime format (HH:MM:SS or HH:MM)

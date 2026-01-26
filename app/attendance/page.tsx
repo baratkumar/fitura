@@ -47,14 +47,15 @@ export default function AttendancePage() {
 
   // Auto-close modal after 5 seconds
   useEffect(() => {
-    if (showModal) {
+    if (showModal && successData) {
       const timer = setTimeout(() => {
         setShowModal(false)
+        setSuccessData(null)
       }, 5000) // 5 seconds
 
       return () => clearTimeout(timer)
     }
-  }, [showModal])
+  }, [showModal, successData])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

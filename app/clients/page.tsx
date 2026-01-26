@@ -139,9 +139,12 @@ export default function ClientsPage() {
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4">
-                      <div className="text-sm font-semibold text-gray-900">
+                      <Link
+                        href={`/clients/${client.clientId}`}
+                        className="text-sm font-semibold text-gray-900 hover:text-fitura-blue transition-colors cursor-pointer block"
+                      >
                         {client.firstName} {client.lastName}
-                      </div>
+                      </Link>
                       <div className="text-xs text-gray-500">{client.email}</div>
                       <div className="text-xs text-gray-500">{client.phone}</div>
                       <div className="text-xs text-gray-500 md:hidden mt-1">

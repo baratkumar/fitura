@@ -52,20 +52,22 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/clients] Extracted photoUrl:', photoUrl, 'typeof:', typeof photoUrl)
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !phone || !dateOfBirth || !membershipType || !address || address.trim() === '' || !emergencyContactName || !emergencyContactPhone) {
+    if (!firstName || !lastName || !phone || !dateOfBirth || !membershipType || !address || address.trim() === '' || !emergencyContactName || !emergencyContactPhone) {
       return NextResponse.json(
         { error: 'Missing required fields. Please fill in all required fields including address.' },
         { status: 400 }
       )
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      )
+    // Validate email format when provided
+    if (email && email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email.trim())) {
+        return NextResponse.json(
+          { error: 'Invalid email format' },
+          { status: 400 }
+        )
+      }
     }
 
     // Validate Aadhar Number if provided (must be 12 digits)
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
     const newClient = await addClient({
       firstName,
       lastName,
-      email,
+      email: email?.trim() || undefined,
       phone,
       dateOfBirth,
       age: age ? parseInt(age) : undefined,

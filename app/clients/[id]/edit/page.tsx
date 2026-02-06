@@ -417,7 +417,7 @@ export default function EditClientPage() {
               </div>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email <span className="text-red-500">*</span>
+                  Email
                 </label>
                 <input
                   type="email"
@@ -426,7 +426,6 @@ export default function EditClientPage() {
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
-                  required
                 />
               </div>
               <div>
@@ -534,6 +533,8 @@ export default function EditClientPage() {
                   <option value="AB-">AB-</option>
                   <option value="O+">O+</option>
                   <option value="O-">O-</option>
+                  <option value="Bombay (hh)">Bombay (hh)</option>
+                  <option value="Unknown">Unknown</option>
                 </select>
               </div>
               <div>

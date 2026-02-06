@@ -18,6 +18,7 @@ export default function NewClientPage() {
   const [loading, setLoading] = useState(false)
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [loadingMemberships, setLoadingMemberships] = useState(true)
+  const today = new Date().toISOString().split('T')[0]
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -34,7 +35,7 @@ export default function NewClientPage() {
     photoUrl: '',
     address: '',
     membershipType: '',
-    joiningDate: '',
+    joiningDate: today,
     expiryDate: '',
     emergencyContactName: '',
     emergencyContactPhone: '',
@@ -44,7 +45,7 @@ export default function NewClientPage() {
     previousGymDetails: '',
     membershipFee: '',
     discount: '',
-    paymentDate: '',
+    paymentDate: today,
     paymentMode: '',
     transactionId: '',
     paidAmount: '',
@@ -347,7 +348,7 @@ export default function NewClientPage() {
               </div>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email <span className="text-red-500">*</span>
+                  Email
                 </label>
                 <input
                   type="email"
@@ -356,7 +357,6 @@ export default function NewClientPage() {
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
-                  required
                 />
               </div>
               <div>
@@ -464,6 +464,8 @@ export default function NewClientPage() {
                   <option value="AB-">AB-</option>
                   <option value="O+">O+</option>
                   <option value="O-">O-</option>
+                  <option value="Bombay (hh)">Bombay (hh)</option>
+                  <option value="Unknown">Unknown</option>
                 </select>
               </div>
               <div>

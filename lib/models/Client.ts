@@ -4,7 +4,7 @@ export interface IClient extends Document {
   clientId: number;
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   phone: string;
   dateOfBirth: Date;
   age?: number;
@@ -54,7 +54,7 @@ const ClientSchema = new Schema<IClient>(
     },
     email: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
       lowercase: true,
       index: true,

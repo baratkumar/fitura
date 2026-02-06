@@ -4,7 +4,7 @@ export interface Client {
   clientId: number // Primary identifier - running number starting from 1
   firstName: string
   lastName: string
-  email: string
+  email?: string
   phone: string
   dateOfBirth: string
   age?: number

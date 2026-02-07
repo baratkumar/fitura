@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Users, Edit, Trash2, X } from 'lucide-react'
+import { Users, Edit, Trash2, X, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { openReceiptPrint } from '@/lib/receipt'
 
 interface Client {
-  clientId: number // Primary identifier - running number starting from 1
+  clientId: number
   firstName: string
   lastName: string
-  email: string
+  email?: string
   phone: string
   membershipType: string
   membershipName?: string
@@ -17,6 +18,11 @@ interface Client {
   membershipFee?: number
   discount?: number
   paidAmount?: number
+  joiningDate?: string
+  paymentDate?: string
+  paymentMode?: string
+  transactionId?: string
+  address?: string
   photoUrl?: string
   createdAt: string
 }
@@ -63,6 +69,15 @@ export default function ClientsPage() {
     } catch (error) {
       console.error('Error deleting client:', error)
     }
+  }
+
+  const isPaidClient = (client: Client) => {
+    const paidAmount = client.paidAmount ?? 0
+    return paidAmount > 0
+  }
+
+  const handleDownloadReceipt = (client: Client) => {
+    openReceiptPrint(client)
   }
 
   if (loading) {
@@ -182,6 +197,15 @@ export default function ClientsPage() {
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-2 sm:gap-3">
+                        {isPaidClient(client) && (
+                          <button
+                            onClick={() => handleDownloadReceipt(client)}
+                            className="text-green-600 hover:text-green-800 transition-colors p-1 rounded hover:bg-green-50"
+                            title="Download Receipt"
+                          >
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEdit(client.clientId)}
                           className="text-fitura-blue hover:text-fitura-magenta transition-colors p-1 rounded hover:bg-fitura-blue/10"

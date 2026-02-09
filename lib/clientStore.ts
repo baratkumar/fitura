@@ -26,6 +26,42 @@ export async function getAllClients(): Promise<ClientType[]> {
     .filter((client): client is ClientType => client !== null && client.clientId >= 1);
 }
 
+/** Get clients whose membership expires between today and end of next week (same as dashboard "Expiring This Week") */
+export async function getExpiringClients(): Promise<ClientType[]> {
+  await connectDB();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weekStart = new Date(today);
+  const dayOfWeek = today.getDay();
+  const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  weekStart.setDate(diff);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+  const nextWeekEnd = new Date(weekEnd);
+  nextWeekEnd.setDate(weekEnd.getDate() + 7);
+
+  const clients = await Client.find({
+    clientId: { $exists: true, $ne: null, $gte: 1 },
+    expiryDate: { $exists: true, $ne: null, $gte: today, $lte: nextWeekEnd },
+  })
+    .populate('membershipType', 'name membershipId')
+    .sort({ expiryDate: 1, clientId: 1 })
+    .lean();
+
+  return clients
+    .map(client => {
+      try {
+        return mapToClientType(client);
+      } catch (error) {
+        console.error('Skipping invalid client:', error);
+        return null;
+      }
+    })
+    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+}
+
 export async function getClient(id: string): Promise<ClientType | null> {
   await connectDB();
   // Try to find by clientId first (if it's a number), otherwise try MongoDB _id

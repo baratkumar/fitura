@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { 
   DollarSign, 
   Users, 
@@ -54,7 +55,13 @@ export default function Dashboard() {
     }).format(amount)
   }
 
-  const cards = [
+  const cards: Array<{
+    title: string
+    value: string | number
+    icon: typeof DollarSign
+    color: string
+    href?: string
+  }> = [
     {
       title: "Today's Revenue",
       value: stats ? formatCurrency(stats.todayRevenue) : '₹0',
@@ -78,6 +85,7 @@ export default function Dashboard() {
       value: stats?.expiringClientsThisWeek || 0,
       icon: Clock,
       color: 'bg-orange-500',
+      href: '/clients/expiring',
     },
     {
       title: 'Current Week Revenue',
@@ -124,11 +132,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card, index) => {
           const IconComponent = card.icon
-          return (
-            <div
-              key={index}
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
-            >
+          const href = card.href
+          const content = (
+            <>
               <div className="flex items-center justify-between mb-4">
                 <div className={`${card.color} text-white p-3 rounded-lg`}>
                   <IconComponent className="w-6 h-6" />
@@ -136,6 +142,20 @@ export default function Dashboard() {
               </div>
               <h3 className="text-sm font-medium text-gray-600 mb-2">{card.title}</h3>
               <p className="text-3xl font-bold text-gray-900">{card.value}</p>
+            </>
+          )
+          return (
+            <div
+              key={index}
+              className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow ${href ? 'cursor-pointer' : ''}`}
+            >
+              {href ? (
+                <Link href={href} className="block">
+                  {content}
+                </Link>
+              ) : (
+                content
+              )}
             </div>
           )
         })}

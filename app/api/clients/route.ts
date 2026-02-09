@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAllClients, addClient } from '@/lib/clientStore'
+import { getAllClients, getClientsPaginated, addClient } from '@/lib/clientStore'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const pageParam = searchParams.get('page')
+    const limitParam = searchParams.get('limit')
+
+    if (pageParam !== null || limitParam !== null) {
+      const page = Math.max(1, parseInt(pageParam || '1', 10) || 1)
+      const limit = Math.min(100, Math.max(1, parseInt(limitParam || '10', 10) || 10))
+      const result = await getClientsPaginated(page, limit)
+      return NextResponse.json(result)
+    }
+
     const clients = await getAllClients()
     return NextResponse.json(clients)
   } catch (error) {

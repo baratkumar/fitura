@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Users, Edit, Trash2, X, FileText } from 'lucide-react'
+import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
+
+const PAGE_SIZES = [10, 20, 50]
 
 interface Client {
   clientId: number
@@ -32,17 +34,24 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
   useEffect(() => {
     fetchClients()
-  }, [])
+  }, [page, limit])
 
   const fetchClients = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/clients')
+      const response = await fetch(`/api/clients?page=${page}&limit=${limit}`)
       if (response.ok) {
         const data = await response.json()
-        setClients(data)
+        setClients(data.clients)
+        setTotal(data.total)
+        setTotalPages(data.totalPages)
       }
     } catch (error) {
       console.error('Error fetching clients:', error)
@@ -64,12 +73,20 @@ export default function ClientsPage() {
       })
 
       if (response.ok) {
-        setClients(clients.filter(client => client.clientId !== clientId))
+        const remaining = clients.filter(client => client.clientId !== clientId)
+        setClients(remaining)
+        setTotal(prev => prev - 1)
+        if (remaining.length === 0 && page > 1) {
+          setPage(p => Math.max(1, p - 1))
+        }
       }
     } catch (error) {
       console.error('Error deleting client:', error)
     }
   }
+
+  const startItem = total === 0 ? 0 : (page - 1) * limit + 1
+  const endItem = Math.min(page * limit, total)
 
   const isPaidClient = (client: Client) => {
     const paidAmount = client.paidAmount ?? 0
@@ -226,6 +243,44 @@ export default function ClientsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* Pagination */}
+          <div className="px-3 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-600">
+                Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of <span className="font-medium">{total}</span> clients
+              </p>
+              <select
+                value={limit}
+                onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white"
+              >
+                {PAGE_SIZES.map((n) => (
+                  <option key={n} value={n}>{n} per page</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Previous page"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="text-sm text-gray-600 px-2">
+                Page {page} of {totalPages || 1}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Next page"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       ) : (

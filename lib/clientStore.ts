@@ -5,15 +5,15 @@ import { Client as ClientType } from './clientStore.types';
 
 export * from './clientStore.types';
 
+const clientListFilter = { clientId: { $exists: true, $ne: null, $gte: 1 } };
+
 export async function getAllClients(): Promise<ClientType[]> {
   await connectDB();
-  const clients = await Client.find({
-    clientId: { $exists: true, $ne: null, $gte: 1 } // Only get clients with valid IDs >= 1
-  })
+  const clients = await Client.find(clientListFilter)
     .populate('membershipType', 'name membershipId')
-    .sort({ clientId: 1 }) // Sort by clientId instead of createdAt
+    .sort({ clientId: 1 })
     .lean();
-  
+
   return clients
     .map(client => {
       try {
@@ -24,6 +24,48 @@ export async function getAllClients(): Promise<ClientType[]> {
       }
     })
     .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+}
+
+export interface ClientsPaginatedResult {
+  clients: ClientType[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getClientsPaginated(page: number = 1, limit: number = 10): Promise<ClientsPaginatedResult> {
+  await connectDB();
+  const skip = Math.max(0, (page - 1) * limit);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  const [clients, total] = await Promise.all([
+    Client.find(clientListFilter)
+      .populate('membershipType', 'name membershipId')
+      .sort({ clientId: 1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .lean(),
+    Client.countDocuments(clientListFilter),
+  ]);
+
+  const mapped = clients
+    .map(client => {
+      try {
+        return mapToClientType(client);
+      } catch (error) {
+        console.error('Skipping invalid client:', error);
+        return null;
+      }
+    })
+    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+
+  return {
+    clients: mapped,
+    total,
+    page,
+    limit: safeLimit,
+    totalPages: Math.ceil(total / safeLimit) || 1,
+  };
 }
 
 /** Get clients whose membership expires between today and end of next week (same as dashboard "Expiring This Week") */

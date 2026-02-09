@@ -18,7 +18,7 @@ export interface ReceiptClient {
   transactionId?: string
 }
 
-export function generateReceiptHTML(client: ReceiptClient): string {
+export function generateReceiptHTML(client: ReceiptClient, logoUrl?: string): string {
   const membershipFee = client.membershipFee ?? 0
   const discount = client.discount ?? 0
   const finalAmount = Math.max(0, membershipFee - discount)
@@ -46,6 +46,7 @@ export function generateReceiptHTML(client: ReceiptClient): string {
     body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #1f2937; max-width: 480px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #4f46e5; }
     .header h1 { font-size: 28px; color: #4f46e5; margin-bottom: 4px; }
+    .receipt-logo { max-height: 60px; max-width: 200px; object-fit: contain; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto; }
     .header p { font-size: 12px; color: #6b7280; }
     .receipt-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 24px; }
     .section { margin-bottom: 24px; }
@@ -61,7 +62,7 @@ export function generateReceiptHTML(client: ReceiptClient): string {
 </head>
 <body>
   <div class="header">
-    <h1>Fitura</h1>
+    ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="receipt-logo" />` : '<h1>Fitura</h1>'}
     <p>Payment Receipt</p>
   </div>
   
@@ -108,7 +109,8 @@ export function generateReceiptHTML(client: ReceiptClient): string {
 }
 
 export function openReceiptPrint(client: ReceiptClient): void {
-  const html = generateReceiptHTML(client)
+  const logoUrl = typeof window !== 'undefined' ? `${window.location.origin}/images/rival-fitness-logo.jpeg` : undefined
+  const html = generateReceiptHTML(client, logoUrl)
   const printWindow = window.open('', '_blank')
   if (printWindow) {
     printWindow.document.write(html)

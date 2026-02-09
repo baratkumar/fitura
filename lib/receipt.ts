@@ -46,7 +46,7 @@ export function generateReceiptHTML(client: ReceiptClient, logoUrl?: string): st
     body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #1f2937; max-width: 480px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #4f46e5; }
     .header h1 { font-size: 28px; color: #4f46e5; margin-bottom: 4px; }
-    .receipt-logo { max-height: 60px; max-width: 200px; object-fit: contain; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto; }
+    .receipt-logo { height: 150px; max-width: 100%; object-fit: contain; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto; }
     .header p { font-size: 12px; color: #6b7280; }
     .receipt-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 24px; }
     .section { margin-bottom: 24px; }

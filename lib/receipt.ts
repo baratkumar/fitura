@@ -58,9 +58,25 @@ export function generateReceiptHTML(client: ReceiptClient, logoUrl?: string): st
     .amount-row { font-size: 16px; font-weight: 600; padding: 12px 0; }
     .total-row { background: #eef2ff; margin: 16px -16px; padding: 16px; font-size: 18px; font-weight: 700; color: #4f46e5; }
     .footer { text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      body { padding: 0; max-width: none; }
+      .receipt-page { page-break-inside: avoid; break-inside: avoid; }
+      .header { margin-bottom: 12px; padding-bottom: 10px; }
+      .receipt-logo { height: 70px !important; margin-bottom: 4px; }
+      .receipt-title { font-size: 16px; margin-bottom: 12px; }
+      .section { margin-bottom: 10px; }
+      .section-title { margin-bottom: 6px; }
+      .row { padding: 4px 0; font-size: 12px; }
+      .amount-row { padding: 6px 0; font-size: 13px; }
+      .total-row { margin: 8px 0; padding: 8px; font-size: 14px; }
+      .footer { margin-top: 8px; padding-top: 6px; font-size: 10px; }
+      .footer p { margin: 0; }
+    }
   </style>
 </head>
 <body>
+  <div class="receipt-page">
   <div class="header">
     ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="receipt-logo" />` : '<h1>Fitura</h1>'}
     <p>Payment Receipt</p>
@@ -96,8 +112,8 @@ export function generateReceiptHTML(client: ReceiptClient, logoUrl?: string): st
   </div>
   
   <div class="footer">
-    <p>Thank you for your payment!</p>
-    <p style="margin-top: 8px;">Generated on ${formatDate(new Date().toISOString().split('T')[0])}</p>
+    <p>Thank you for your payment! — Generated on ${formatDate(new Date().toISOString().split('T')[0])}</p>
+  </div>
   </div>
   
   <script>

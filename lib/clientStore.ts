@@ -34,18 +34,49 @@ export interface ClientsPaginatedResult {
   totalPages: number;
 }
 
-export async function getClientsPaginated(page: number = 1, limit: number = 10): Promise<ClientsPaginatedResult> {
+export interface ClientsPaginatedFilters {
+  clientId?: string;
+  name?: string;
+}
+
+function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unknown> {
+  const base: Record<string, unknown> = { ...clientListFilter };
+  if (!filters) return base;
+
+  if (filters.clientId != null && String(filters.clientId).trim() !== '') {
+    const id = parseInt(String(filters.clientId).trim(), 10);
+    if (!isNaN(id)) (base as Record<string, unknown>).clientId = id;
+  }
+
+  if (filters.name != null && String(filters.name).trim() !== '') {
+    const term = String(filters.name).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(term, 'i');
+    (base as Record<string, unknown>).$or = [
+      { firstName: re },
+      { lastName: re },
+    ];
+  }
+
+  return base;
+}
+
+export async function getClientsPaginated(
+  page: number = 1,
+  limit: number = 10,
+  filters?: ClientsPaginatedFilters
+): Promise<ClientsPaginatedResult> {
   await connectDB();
   const skip = Math.max(0, (page - 1) * limit);
   const safeLimit = Math.min(100, Math.max(1, limit));
+  const listFilter = buildListFilter(filters);
   const [clients, total] = await Promise.all([
-    Client.find(clientListFilter)
+    Client.find(listFilter)
       .populate('membershipType', 'name membershipId')
       .sort({ clientId: 1 })
       .skip(skip)
       .limit(safeLimit)
       .lean(),
-    Client.countDocuments(clientListFilter),
+    Client.countDocuments(listFilter),
   ]);
 
   const mapped = clients

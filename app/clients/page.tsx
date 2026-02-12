@@ -38,15 +38,22 @@ export default function ClientsPage() {
   const [limit, setLimit] = useState(10)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
+  const [filterClientId, setFilterClientId] = useState('')
+  const [filterName, setFilterName] = useState('')
 
   useEffect(() => {
     fetchClients()
-  }, [page, limit])
+  }, [page, limit, filterClientId, filterName])
 
   const fetchClients = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/clients?page=${page}&limit=${limit}`)
+      const params = new URLSearchParams()
+      params.set('page', String(page))
+      params.set('limit', String(limit))
+      if (filterClientId.trim()) params.set('clientId', filterClientId.trim())
+      if (filterName.trim()) params.set('name', filterName.trim())
+      const response = await fetch(`/api/clients?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
         setClients(data.clients)
@@ -182,9 +189,55 @@ export default function ClientsPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex flex-col gap-2">
+                      <span>ID</span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={filterClientId}
+                          onChange={(e) => { setFilterClientId(e.target.value); setPage(1); }}
+                          placeholder="Filter..."
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
+                        />
+                        {filterClientId && (
+                          <button
+                            type="button"
+                            onClick={() => { setFilterClientId(''); setPage(1); }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            title="Clear filter"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex flex-col gap-2">
+                      <span>Name</span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={filterName}
+                          onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
+                          placeholder="Filter..."
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
+                        />
+                        {filterName && (
+                          <button
+                            type="button"
+                            onClick={() => { setFilterName(''); setPage(1); }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            title="Clear filter"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Expiry Date</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Membership</th>
@@ -308,14 +361,31 @@ export default function ClientsPage() {
             <div className="mb-4 flex justify-center opacity-50">
               <Users className="w-24 h-24 text-gray-400" />
             </div>
-            <h3 className="text-2xl font-semibold mb-2">No clients yet</h3>
-            <p className="text-gray-500 mb-6">Get started by registering your first client</p>
-            <Link
-              href="/clients/new"
-              className="bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors inline-block"
-            >
-              Register New Client
-            </Link>
+            <h3 className="text-2xl font-semibold mb-2">
+              {filterClientId || filterName ? 'No clients found' : 'No clients yet'}
+            </h3>
+            <p className="text-gray-500 mb-6">
+              {filterClientId || filterName
+                ? 'Try adjusting your filters or clear them to see all clients'
+                : 'Get started by registering your first client'}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {(filterClientId || filterName) && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterClientId(''); setFilterName(''); setPage(1); }}
+                  className="text-fitura-blue hover:text-fitura-dark font-medium"
+                >
+                  Clear filters
+                </button>
+              )}
+              <Link
+                href="/clients/new"
+                className="bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors inline-block"
+              >
+                Register New Client
+              </Link>
+            </div>
           </div>
           {paginationBar}
         </div>

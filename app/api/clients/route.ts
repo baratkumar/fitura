@@ -10,7 +10,12 @@ export async function GET(request: NextRequest) {
     if (pageParam !== null || limitParam !== null) {
       const page = Math.max(1, parseInt(pageParam || '1', 10) || 1)
       const limit = Math.min(100, Math.max(1, parseInt(limitParam || '10', 10) || 10))
-      const result = await getClientsPaginated(page, limit)
+      const clientId = searchParams.get('clientId') ?? undefined
+      const name = searchParams.get('name') ?? undefined
+      const filters = (clientId != null && clientId !== '') || (name != null && name !== '')
+        ? { clientId: clientId || undefined, name: name || undefined }
+        : undefined
+      const result = await getClientsPaginated(page, limit, filters)
       return NextResponse.json(result)
     }
 

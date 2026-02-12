@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
 
-const PAGE_SIZES = [10, 20, 50]
+const PAGE_SIZES = [10, 20, 50, 100]
 
 interface Client {
   clientId: number
@@ -96,6 +96,62 @@ export default function ClientsPage() {
   const handleDownloadReceipt = (client: Client) => {
     openReceiptPrint(client)
   }
+
+  const paginationBar = (
+    <div className="px-3 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+        <p className="text-sm text-gray-600">
+          Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of <span className="font-medium">{total}</span> clients
+        </p>
+        <select
+          value={limit}
+          onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+        >
+          {PAGE_SIZES.map((n) => (
+            <option key={n} value={n}>{n} per page</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-1 sm:gap-2">
+        <button
+          onClick={() => setPage(1)}
+          disabled={page <= 1}
+          className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="First page"
+        >
+          <ChevronsLeft className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page <= 1}
+          className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Previous page"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <span className="text-sm text-gray-600 px-2 min-w-[7rem] text-center">
+          Page {page} of {totalPages || 1}
+        </span>
+        <button
+          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+          disabled={page >= totalPages}
+          className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Next page"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => setPage(totalPages)}
+          disabled={page >= totalPages}
+          className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Last page"
+        >
+          <ChevronsRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  )
 
   if (loading) {
     return (
@@ -244,58 +300,24 @@ export default function ClientsPage() {
               </tbody>
             </table>
           </div>
-          {/* Pagination */}
-          <div className="px-3 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-gray-600">
-                Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of <span className="font-medium">{total}</span> clients
-              </p>
-              <select
-                value={limit}
-                onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-                className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white"
-              >
-                {PAGE_SIZES.map((n) => (
-                  <option key={n} value={n}>{n} per page</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Previous page"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="text-sm text-gray-600 px-2">
-                Page {page} of {totalPages || 1}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Next page"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+          {paginationBar}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-          <div className="mb-4 flex justify-center opacity-50">
-            <Users className="w-24 h-24 text-gray-400" />
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="p-12 text-center">
+            <div className="mb-4 flex justify-center opacity-50">
+              <Users className="w-24 h-24 text-gray-400" />
+            </div>
+            <h3 className="text-2xl font-semibold mb-2">No clients yet</h3>
+            <p className="text-gray-500 mb-6">Get started by registering your first client</p>
+            <Link
+              href="/clients/new"
+              className="bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors inline-block"
+            >
+              Register New Client
+            </Link>
           </div>
-          <h3 className="text-2xl font-semibold mb-2">No clients yet</h3>
-          <p className="text-gray-500 mb-6">Get started by registering your first client</p>
-          <Link
-            href="/clients/new"
-            className="bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors inline-block"
-          >
-            Register New Client
-          </Link>
+          {paginationBar}
         </div>
       )}
 

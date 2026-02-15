@@ -2,11 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
 
 const PAGE_SIZES = [10, 20, 50, 100]
+
+interface Membership {
+  membershipId: number
+  name: string
+  description?: string
+  durationDays: number
+  price?: number
+  isActive: boolean
+}
 
 interface Client {
   clientId: number
@@ -41,10 +50,104 @@ export default function ClientsPage() {
   const [filterClientId, setFilterClientId] = useState('')
   const [filterName, setFilterName] = useState('')
   const [filterPhone, setFilterPhone] = useState('')
+  const [renewClient, setRenewClient] = useState<Client | null>(null)
+  const [memberships, setMemberships] = useState<Membership[]>([])
+  const [renewing, setRenewing] = useState(false)
+  const [renewForm, setRenewForm] = useState({
+    membershipType: '',
+    joiningDate: '',
+    expiryDate: '',
+    membershipFee: '',
+    discount: '0',
+    paidAmount: '',
+    paymentDate: new Date().toISOString().split('T')[0],
+    paymentMode: '',
+    transactionId: '',
+  })
 
   useEffect(() => {
     fetchClients()
   }, [page, limit, filterClientId, filterName, filterPhone])
+
+  useEffect(() => {
+    if (renewClient) {
+      fetch('/api/memberships')
+        .then((res) => res.ok ? res.json() : [])
+        .then((data) => setMemberships(data))
+        .catch(() => setMemberships([]))
+      setRenewForm({
+        membershipType: '',
+        joiningDate: new Date().toISOString().split('T')[0],
+        expiryDate: '',
+        membershipFee: '',
+        discount: '0',
+        paidAmount: '',
+        paymentDate: new Date().toISOString().split('T')[0],
+        paymentMode: '',
+        transactionId: '',
+      })
+    }
+  }, [renewClient])
+
+  useEffect(() => {
+    if (!renewForm.membershipType || !memberships.length) return
+    const m = memberships.find((x) => x.membershipId.toString() === renewForm.membershipType)
+    if (m) {
+      const fee = m.price ?? 0
+      const disc = parseFloat(renewForm.discount) || 0
+      setRenewForm((prev) => ({ ...prev, membershipFee: fee.toString(), paidAmount: (fee - disc).toString() }))
+    }
+  }, [renewForm.membershipType, renewForm.discount, memberships])
+
+  const handleRenewFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setRenewForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleRenewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!renewClient) return
+    setRenewing(true)
+    try {
+      const res = await fetch(`/api/clients/${renewClient.clientId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          membershipType: renewForm.membershipType,
+          joiningDate: renewForm.joiningDate || undefined,
+          expiryDate: renewForm.expiryDate || undefined,
+          membershipFee: renewForm.membershipFee ? parseFloat(renewForm.membershipFee) : undefined,
+          discount: parseFloat(renewForm.discount) || 0,
+          paidAmount: renewForm.paidAmount ? parseFloat(renewForm.paidAmount) : undefined,
+          paymentDate: renewForm.paymentDate || undefined,
+          paymentMode: renewForm.paymentMode || undefined,
+          transactionId: renewForm.transactionId || undefined,
+        }),
+      })
+      if (res.ok) {
+        setRenewClient(null)
+        fetchClients()
+      } else {
+        const err = await res.json()
+        alert(err.error || 'Failed to renew membership')
+      }
+    } catch (err) {
+      console.error('Renew error:', err)
+      alert('Failed to renew membership')
+    } finally {
+      setRenewing(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!renewForm.joiningDate || !renewForm.membershipType || !memberships.length) return
+    const m = memberships.find((x) => x.membershipId.toString() === renewForm.membershipType)
+    if (m?.durationDays) {
+      const d = new Date(renewForm.joiningDate)
+      d.setDate(d.getDate() + m.durationDays)
+      setRenewForm((prev) => ({ ...prev, expiryDate: d.toISOString().split('T')[0] }))
+    }
+  }, [renewForm.joiningDate, renewForm.membershipType, memberships])
 
   const fetchClients = async () => {
     setLoading(true)
@@ -362,6 +465,13 @@ export default function ClientsPage() {
                           </button>
                         )}
                         <button
+                          onClick={() => setRenewClient(client)}
+                          className="text-amber-600 hover:text-amber-800 transition-colors p-1 rounded hover:bg-amber-50"
+                          title="Renew"
+                        >
+                          <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        <button
                           onClick={() => handleEdit(client.clientId)}
                           className="text-fitura-blue hover:text-fitura-magenta transition-colors p-1 rounded hover:bg-fitura-blue/10"
                           title="Edit"
@@ -417,6 +527,197 @@ export default function ClientsPage() {
             </div>
           </div>
           {paginationBar}
+        </div>
+      )}
+
+      {/* Renew Membership Modal */}
+      {renewClient && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => !renewing && setRenewClient(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Renew Membership</h2>
+                <button
+                  type="button"
+                  onClick={() => !renewing && setRenewClient(null)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-6">
+                {renewClient.firstName} {renewClient.lastName} (ID: {renewClient.clientId})
+              </p>
+              <form onSubmit={handleRenewSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="renew-membershipType" className="block text-sm font-medium text-gray-700 mb-1">
+                    Subscription <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="renew-membershipType"
+                    name="membershipType"
+                    value={renewForm.membershipType}
+                    onChange={handleRenewFormChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                  >
+                    <option value="">Select subscription</option>
+                    {memberships.map((m) => (
+                      <option key={m.membershipId} value={m.membershipId}>
+                        {m.name} {m.price != null ? `— ₹${m.price}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="renew-joiningDate" className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      id="renew-joiningDate"
+                      name="joiningDate"
+                      value={renewForm.joiningDate}
+                      onChange={handleRenewFormChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="renew-expiryDate" className="block text-sm font-medium text-gray-700 mb-1">
+                      Expiry Date
+                    </label>
+                    <input
+                      type="date"
+                      id="renew-expiryDate"
+                      name="expiryDate"
+                      value={renewForm.expiryDate}
+                      onChange={handleRenewFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="renew-paymentDate" className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    id="renew-paymentDate"
+                    name="paymentDate"
+                    value={renewForm.paymentDate}
+                    onChange={handleRenewFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="renew-membershipFee" className="block text-sm font-medium text-gray-700 mb-1">
+                      Membership Fee (₹)
+                    </label>
+                    <input
+                      type="number"
+                      id="renew-membershipFee"
+                      name="membershipFee"
+                      value={renewForm.membershipFee}
+                      onChange={handleRenewFormChange}
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="renew-discount" className="block text-sm font-medium text-gray-700 mb-1">
+                      Discount (₹)
+                    </label>
+                    <input
+                      type="number"
+                      id="renew-discount"
+                      name="discount"
+                      value={renewForm.discount}
+                      onChange={handleRenewFormChange}
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="renew-paidAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                    Paid Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    id="renew-paidAmount"
+                    name="paidAmount"
+                    value={renewForm.paidAmount}
+                    onChange={handleRenewFormChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="renew-paymentMode" className="block text-sm font-medium text-gray-700 mb-1">
+                      Payment Mode
+                    </label>
+                    <select
+                      id="renew-paymentMode"
+                      name="paymentMode"
+                      value={renewForm.paymentMode}
+                      onChange={handleRenewFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    >
+                      <option value="">Select</option>
+                      <option value="UPI">UPI</option>
+                      <option value="Card">Card</option>
+                      <option value="Cash">Cash</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="renew-transactionId" className="block text-sm font-medium text-gray-700 mb-1">
+                      Transaction ID
+                    </label>
+                    <input
+                      type="text"
+                      id="renew-transactionId"
+                      name="transactionId"
+                      value={renewForm.transactionId}
+                      onChange={handleRenewFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => !renewing && setRenewClient(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={renewing || !renewForm.membershipType}
+                    className="flex-1 px-4 py-2 bg-fitura-dark text-white rounded-lg font-medium hover:bg-fitura-blue disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {renewing ? 'Renewing…' : 'Renew'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 

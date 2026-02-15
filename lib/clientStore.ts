@@ -37,6 +37,7 @@ export interface ClientsPaginatedResult {
 export interface ClientsPaginatedFilters {
   clientId?: string;
   name?: string;
+  phone?: string;
 }
 
 function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unknown> {
@@ -55,6 +56,11 @@ function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unkn
       { firstName: re },
       { lastName: re },
     ];
+  }
+
+  if (filters.phone != null && String(filters.phone).trim() !== '') {
+    const term = String(filters.phone).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    (base as Record<string, unknown>).phone = { $regex: term, $options: 'i' };
   }
 
   return base;

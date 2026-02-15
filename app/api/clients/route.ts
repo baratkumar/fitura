@@ -12,8 +12,10 @@ export async function GET(request: NextRequest) {
       const limit = Math.min(100, Math.max(1, parseInt(limitParam || '10', 10) || 10))
       const clientId = searchParams.get('clientId') ?? undefined
       const name = searchParams.get('name') ?? undefined
-      const filters = (clientId != null && clientId !== '') || (name != null && name !== '')
-        ? { clientId: clientId || undefined, name: name || undefined }
+      const phone = searchParams.get('phone') ?? undefined
+      const hasFilters = (clientId != null && clientId !== '') || (name != null && name !== '') || (phone != null && phone !== '')
+      const filters = hasFilters
+        ? { clientId: clientId || undefined, name: name || undefined, phone: phone || undefined }
         : undefined
       const result = await getClientsPaginated(page, limit, filters)
       return NextResponse.json(result)

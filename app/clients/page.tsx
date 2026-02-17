@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw } from 'lucide-react'
+import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
 
 const PAGE_SIZES = [10, 20, 50, 100]
+const SEARCH_DEBOUNCE_MS = 2500
 
 interface Membership {
   membershipId: number
@@ -50,6 +51,9 @@ export default function ClientsPage() {
   const [filterClientId, setFilterClientId] = useState('')
   const [filterName, setFilterName] = useState('')
   const [filterPhone, setFilterPhone] = useState('')
+  const [filterClientIdDebounced, setFilterClientIdDebounced] = useState('')
+  const [filterNameDebounced, setFilterNameDebounced] = useState('')
+  const [filterPhoneDebounced, setFilterPhoneDebounced] = useState('')
   const [renewClient, setRenewClient] = useState<Client | null>(null)
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [renewing, setRenewing] = useState(false)
@@ -66,8 +70,18 @@ export default function ClientsPage() {
   })
 
   useEffect(() => {
+    const t = setTimeout(() => {
+      setFilterClientIdDebounced(filterClientId)
+      setFilterNameDebounced(filterName)
+      setFilterPhoneDebounced(filterPhone)
+      setPage(1)
+    }, SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(t)
+  }, [filterClientId, filterName, filterPhone])
+
+  useEffect(() => {
     fetchClients()
-  }, [page, limit, filterClientId, filterName, filterPhone])
+  }, [page, limit, filterClientIdDebounced, filterNameDebounced, filterPhoneDebounced])
 
   useEffect(() => {
     if (renewClient) {
@@ -155,9 +169,9 @@ export default function ClientsPage() {
       const params = new URLSearchParams()
       params.set('page', String(page))
       params.set('limit', String(limit))
-      if (filterClientId.trim()) params.set('clientId', filterClientId.trim())
-      if (filterName.trim()) params.set('name', filterName.trim())
-      if (filterPhone.trim()) params.set('phone', filterPhone.trim())
+      if (filterClientIdDebounced.trim()) params.set('clientId', filterClientIdDebounced.trim())
+      if (filterNameDebounced.trim()) params.set('name', filterNameDebounced.trim())
+      if (filterPhoneDebounced.trim()) params.set('phone', filterPhoneDebounced.trim())
       const response = await fetch(`/api/clients?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
@@ -265,10 +279,25 @@ export default function ClientsPage() {
     </div>
   )
 
-  if (loading) {
+  if (loading && clients.length === 0) {
     return (
       <div className="container mx-auto px-4 py-10">
-        <div className="text-center">Loading...</div>
+        <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Clients</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Manage your gym members</p>
+          </div>
+          <Link
+            href="/clients/new"
+            className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
+          >
+            + Register New Client
+          </Link>
+        </div>
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 text-fitura-blue animate-spin mb-4" aria-hidden />
+          <p className="text-gray-600">Loading clients...</p>
+        </div>
       </div>
     )
   }
@@ -289,7 +318,15 @@ export default function ClientsPage() {
       </div>
 
       {clients.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden relative">
+          {loading && (
+            <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10 rounded-xl" aria-busy="true">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-10 h-10 text-fitura-blue animate-spin" aria-hidden />
+                <span className="text-sm text-gray-600">Searching...</span>
+              </div>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -301,14 +338,14 @@ export default function ClientsPage() {
                         <input
                           type="text"
                           value={filterClientId}
-                          onChange={(e) => { setFilterClientId(e.target.value); setPage(1); }}
+                          onChange={(e) => setFilterClientId(e.target.value)}
                           placeholder="Filter..."
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
                         />
                         {filterClientId && (
                           <button
                             type="button"
-                            onClick={() => { setFilterClientId(''); setPage(1); }}
+                            onClick={() => { setFilterClientId(''); setFilterClientIdDebounced(''); setPage(1); }}
                             className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             title="Clear filter"
                           >
@@ -326,14 +363,14 @@ export default function ClientsPage() {
                         <input
                           type="text"
                           value={filterName}
-                          onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
+                          onChange={(e) => setFilterName(e.target.value)}
                           placeholder="Filter..."
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
                         />
                         {filterName && (
                           <button
                             type="button"
-                            onClick={() => { setFilterName(''); setPage(1); }}
+                            onClick={() => { setFilterName(''); setFilterNameDebounced(''); setPage(1); }}
                             className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             title="Clear filter"
                           >
@@ -350,14 +387,14 @@ export default function ClientsPage() {
                         <input
                           type="text"
                           value={filterPhone}
-                          onChange={(e) => { setFilterPhone(e.target.value); setPage(1); }}
+                          onChange={(e) => setFilterPhone(e.target.value)}
                           placeholder="Filter..."
                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
                         />
                         {filterPhone && (
                           <button
                             type="button"
-                            onClick={() => { setFilterPhone(''); setPage(1); }}
+                            onClick={() => { setFilterPhone(''); setFilterPhoneDebounced(''); setPage(1); }}
                             className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             title="Clear filter"
                           >
@@ -512,7 +549,7 @@ export default function ClientsPage() {
               {(filterClientId || filterName || filterPhone) && (
                 <button
                   type="button"
-                  onClick={() => { setFilterClientId(''); setFilterName(''); setFilterPhone(''); setPage(1); }}
+                  onClick={() => { setFilterClientId(''); setFilterName(''); setFilterPhone(''); setFilterClientIdDebounced(''); setFilterNameDebounced(''); setFilterPhoneDebounced(''); setPage(1); }}
                   className="text-fitura-blue hover:text-fitura-dark font-medium"
                 >
                   Clear filters

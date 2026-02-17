@@ -12,6 +12,7 @@ import {
   User, 
   Wallet 
 } from 'lucide-react'
+import PageLoader from '@/components/PageLoader'
 
 interface DashboardStats {
   todayRevenue: number
@@ -116,7 +117,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-10">
-        <div className="text-center">Loading dashboard...</div>
+        <PageLoader message="Loading dashboard..." />
       </div>
     )
   }

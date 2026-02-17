@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CreditCard, Edit, Trash2 } from 'lucide-react'
+import PageLoader from '@/components/PageLoader'
 
 interface Membership {
   membershipId: number // Primary identifier - no MongoDB _id exposed
@@ -275,7 +276,7 @@ export default function SettingsPage() {
 
           {/* Memberships List */}
           {loading && !showForm ? (
-            <div className="text-center py-12">Loading...</div>
+            <PageLoader message="Loading..." className="py-12" />
           ) : memberships.length === 0 ? (
             <div className="bg-white rounded-xl shadow-lg p-12 text-center">
               <div className="mb-4 flex justify-center opacity-50">

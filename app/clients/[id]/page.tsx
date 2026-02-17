@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Edit, Users, Mail, Phone, Calendar, MapPin, CreditCard, User, Heart, Activity, FileText } from 'lucide-react'
+import PageLoader from '@/components/PageLoader'
 
 interface Client {
   clientId: number
@@ -70,7 +71,7 @@ export default function ViewClientPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-10">
-        <div className="text-center">Loading...</div>
+        <PageLoader message="Loading client..." />
       </div>
     )
   }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import PageLoader from '@/components/PageLoader'
 
 interface Membership {
   membershipId: number
@@ -547,8 +548,8 @@ export default function NewClientPage() {
                   Membership Type <span className="text-red-500">*</span>
                 </label>
                 {loadingMemberships ? (
-                  <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
-                    Loading memberships...
+                  <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center min-h-[42px]">
+                    <PageLoader message="Loading memberships..." size="sm" className="py-4" />
                   </div>
                 ) : (
                   <select

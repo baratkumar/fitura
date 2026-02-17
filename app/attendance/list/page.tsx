@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Clock, Trash2, Plus, X, Users } from 'lucide-react'
+import { Clock, Trash2, Plus, X, Users, Loader2 } from 'lucide-react'
+import PageLoader from '@/components/PageLoader'
+
+const SEARCH_DEBOUNCE_MS = 2500
 
 interface Attendance {
   id: string
@@ -22,18 +25,28 @@ export default function AttendanceListPage() {
   const [loading, setLoading] = useState(true)
   const [filterDate, setFilterDate] = useState('')
   const [filterClientId, setFilterClientId] = useState('')
+  const [filterDateDebounced, setFilterDateDebounced] = useState('')
+  const [filterClientIdDebounced, setFilterClientIdDebounced] = useState('')
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null)
 
   useEffect(() => {
-    fetchAttendance()
+    const t = setTimeout(() => {
+      setFilterDateDebounced(filterDate)
+      setFilterClientIdDebounced(filterClientId)
+    }, SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(t)
   }, [filterDate, filterClientId])
+
+  useEffect(() => {
+    fetchAttendance()
+  }, [filterDateDebounced, filterClientIdDebounced])
 
   const fetchAttendance = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
-      if (filterDate) params.append('date', filterDate)
-      if (filterClientId) params.append('clientId', filterClientId)
+      if (filterDateDebounced) params.append('date', filterDateDebounced)
+      if (filterClientIdDebounced) params.append('clientId', filterClientIdDebounced)
       
       const url = params.toString() 
         ? `/api/attendance?${params.toString()}`
@@ -96,10 +109,24 @@ export default function AttendanceListPage() {
     return `${displayHour}:${minutes} ${ampm}`
   }
 
-  if (loading) {
+  if (loading && attendance.length === 0) {
     return (
       <div className="container mx-auto px-4 py-10">
-        <div className="text-center">Loading...</div>
+        <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Attendance List</h1>
+            <p className="text-gray-600 text-sm sm:text-base">View and manage client attendance records</p>
+          </div>
+          <Link
+            href="/attendance"
+            className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+          >
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Record Attendance</span>
+            <span className="sm:hidden">Record</span>
+          </Link>
+        </div>
+        <PageLoader message="Loading attendance..." />
       </div>
     )
   }
@@ -123,7 +150,15 @@ export default function AttendanceListPage() {
 
 
       {attendance.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden relative">
+          {loading && (
+            <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10 rounded-xl" aria-busy="true">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-10 h-10 text-fitura-blue animate-spin" aria-hidden />
+                <span className="text-sm text-gray-600">Searching...</span>
+              </div>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -141,7 +176,8 @@ export default function AttendanceListPage() {
                         />
                         {filterClientId && (
                           <button
-                            onClick={() => setFilterClientId('')}
+                            type="button"
+                            onClick={() => { setFilterClientId(''); setFilterClientIdDebounced(''); }}
                             className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             title="Clear filter"
                           >
@@ -165,7 +201,8 @@ export default function AttendanceListPage() {
                         />
                         {filterDate && (
                           <button
-                            onClick={() => setFilterDate('')}
+                            type="button"
+                            onClick={() => { setFilterDate(''); setFilterDateDebounced(''); }}
                             className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             title="Clear filter"
                           >
@@ -292,12 +329,12 @@ export default function AttendanceListPage() {
             <Clock className="w-24 h-24 text-gray-400" />
           </div>
           <h3 className="text-2xl font-semibold mb-2">
-            {filterDate || filterClientId 
-              ? 'No attendance records found' 
+            {filterDateDebounced || filterClientIdDebounced
+              ? 'No attendance records found'
               : 'No attendance records yet'}
           </h3>
           <p className="text-gray-500 mb-6">
-            {filterDate || filterClientId
+            {filterDateDebounced || filterClientIdDebounced
               ? 'Try adjusting your filters or clear them to see all records'
               : 'Get started by recording your first attendance'}
           </p>

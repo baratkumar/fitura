@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Users, Edit, Trash2, X, FileText, Clock, ArrowLeft } from 'lucide-react'
+import PageLoader from '@/components/PageLoader'
 import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
 
@@ -83,7 +84,7 @@ export default function ExpiringClientsPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-10">
-        <div className="text-center">Loading...</div>
+        <PageLoader message="Loading expiring clients..." />
       </div>
     )
   }

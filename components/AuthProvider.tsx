@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import PageLoader from '@/components/PageLoader'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -50,7 +51,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <PageLoader message="Loading..." className="py-0" />
       </div>
     )
   }
@@ -59,7 +60,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   if (!isAuthenticated && !publicRoutes.includes(pathname)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Redirecting to login...</div>
+        <PageLoader message="Redirecting to login..." className="py-0" />
       </div>
     )
   }

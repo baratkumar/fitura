@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Loader2 } from 'lucide-react'
+import PageLoader from '@/components/PageLoader'
 import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
 
@@ -294,10 +295,7 @@ export default function ClientsPage() {
             + Register New Client
           </Link>
         </div>
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-12 h-12 text-fitura-blue animate-spin mb-4" aria-hidden />
-          <p className="text-gray-600">Loading clients...</p>
-        </div>
+        <PageLoader message="Loading clients..." />
       </div>
     )
   }

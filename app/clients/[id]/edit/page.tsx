@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import PageLoader from '@/components/PageLoader'
 
 interface Membership {
   membershipId: number
@@ -306,7 +307,7 @@ export default function EditClientPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-10 max-w-4xl">
-        <div className="text-center">Loading...</div>
+        <PageLoader message="Loading client..." />
       </div>
     )
   }

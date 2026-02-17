@@ -78,7 +78,7 @@ export async function getClientsPaginated(
   const [clients, total] = await Promise.all([
     Client.find(listFilter)
       .populate('membershipType', 'name membershipId')
-      .sort({ clientId: 1 })
+      .sort({ clientId: -1 })
       .skip(skip)
       .limit(safeLimit)
       .lean(),

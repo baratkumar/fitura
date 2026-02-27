@@ -2,6 +2,7 @@ import connectDB from './db';
 import Client from './models/Client';
 import Membership from './models/Membership';
 import Renewal from './models/Renewal';
+import mongoose from 'mongoose';
 
 export interface RenewalType {
   _id: string;
@@ -20,7 +21,9 @@ export interface RenewalType {
   updatedAt?: string;
 }
 
-async function resolveMembershipObjectId(membershipType: string): Promise<string> {
+async function resolveMembershipObjectId(
+  membershipType: string
+): Promise<mongoose.Types.ObjectId> {
   // Convert membershipId to MongoDB ObjectId if it's a number
   let membershipTypeId: string | undefined = membershipType;
   if (membershipTypeId) {
@@ -28,7 +31,7 @@ async function resolveMembershipObjectId(membershipType: string): Promise<string
     if (!isNaN(membershipId) && membershipId > 0 && membershipId < 100000) {
       const membership = await Membership.findOne({ membershipId });
       if (membership) {
-        return membership._id.toString();
+        return membership._id;
       }
       throw new Error(`Membership with ID ${membershipId} not found`);
     }
@@ -36,7 +39,7 @@ async function resolveMembershipObjectId(membershipType: string): Promise<string
     if (membershipTypeId.length === 24) {
       const membership = await Membership.findById(membershipTypeId);
       if (membership) {
-        return membership._id.toString();
+        return membership._id;
       }
       throw new Error('Membership not found');
     }

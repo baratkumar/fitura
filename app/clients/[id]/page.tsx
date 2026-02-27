@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Edit, Users, Mail, Phone, Calendar, MapPin, CreditCard, User, Heart, Activity, FileText } from 'lucide-react'
+import { ArrowLeft, Edit, Users, Mail, Phone, Calendar, MapPin, CreditCard, User, Heart, Activity, FileText, Trash2, X } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
 
 interface Client {
@@ -41,12 +41,54 @@ interface Client {
   createdAt: string
 }
 
+interface Renewal {
+  _id: string
+  clientId: number
+  membershipType: string
+  membershipName?: string
+  joiningDate?: string
+  expiryDate?: string
+  membershipFee?: number
+  discount?: number
+  paidAmount?: number
+  paymentDate?: string
+  paymentMode?: string
+  transactionId?: string
+  createdAt: string
+  updatedAt?: string
+}
+
+interface Membership {
+  membershipId: number
+  name: string
+  durationDays: number
+  price?: number
+}
+
 export default function ViewClientPage() {
   const router = useRouter()
   const params = useParams()
   const clientId = params.id as string
   const [client, setClient] = useState<Client | null>(null)
   const [loading, setLoading] = useState(true)
+  const [renewals, setRenewals] = useState<Renewal[]>([])
+  const [renewalsLoading, setRenewalsLoading] = useState(true)
+  const [memberships, setMemberships] = useState<Membership[]>([])
+  const [membershipsLoading, setMembershipsLoading] = useState(false)
+  const [editingRenewal, setEditingRenewal] = useState<Renewal | null>(null)
+  const [savingRenewal, setSavingRenewal] = useState(false)
+  const [deletingRenewal, setDeletingRenewal] = useState(false)
+  const [editForm, setEditForm] = useState({
+    membershipType: '',
+    joiningDate: '',
+    expiryDate: '',
+    membershipFee: '',
+    discount: '0',
+    paidAmount: '',
+    paymentDate: '',
+    paymentMode: '',
+    transactionId: '',
+  })
 
   useEffect(() => {
     fetchClient()
@@ -58,6 +100,7 @@ export default function ViewClientPage() {
       if (response.ok) {
         const data = await response.json()
         setClient(data)
+        fetchRenewals(data.clientId)
       } else if (response.status === 404) {
         router.push('/clients')
       }
@@ -65,6 +108,154 @@ export default function ViewClientPage() {
       console.error('Error fetching client:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchRenewals = async (cid: number) => {
+    setRenewalsLoading(true)
+    try {
+      const res = await fetch(`/api/renewals?clientId=${cid}`)
+      if (res.ok) {
+        const data = await res.json()
+        setRenewals(data)
+      } else {
+        setRenewals([])
+      }
+    } catch (err) {
+      console.error('Error fetching renewals:', err)
+      setRenewals([])
+    } finally {
+      setRenewalsLoading(false)
+    }
+  }
+
+  const ensureMembershipsLoaded = async () => {
+    if (memberships.length || membershipsLoading) return
+    setMembershipsLoading(true)
+    try {
+      const res = await fetch('/api/memberships')
+      if (res.ok) {
+        const data = await res.json()
+        setMemberships(data)
+      } else {
+        setMemberships([])
+      }
+    } catch (err) {
+      console.error('Error fetching memberships for renewals:', err)
+      setMemberships([])
+    } finally {
+      setMembershipsLoading(false)
+    }
+  }
+
+  const openEditRenewal = async (renewal: Renewal) => {
+    await ensureMembershipsLoaded()
+    setEditingRenewal(renewal)
+    setEditForm({
+      membershipType: renewal.membershipType || '',
+      joiningDate: renewal.joiningDate || '',
+      expiryDate: renewal.expiryDate || '',
+      membershipFee: renewal.membershipFee != null ? String(renewal.membershipFee) : '',
+      discount: renewal.discount != null ? String(renewal.discount) : '0',
+      paidAmount: renewal.paidAmount != null ? String(renewal.paidAmount) : '',
+      paymentDate: renewal.paymentDate || '',
+      paymentMode: renewal.paymentMode || '',
+      transactionId: renewal.transactionId || '',
+    })
+  }
+
+  useEffect(() => {
+    if (!editingRenewal) return
+    if (!editForm.membershipType || !memberships.length) return
+    const m = memberships.find((x) => x.membershipId.toString() === editForm.membershipType)
+    if (m) {
+      const fee = m.price ?? 0
+      const disc = parseFloat(editForm.discount) || 0
+      setEditForm((prev) => ({
+        ...prev,
+        membershipFee: fee.toString(),
+        paidAmount: (fee - disc).toString(),
+      }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editForm.membershipType, editForm.discount, memberships])
+
+  useEffect(() => {
+    if (!editingRenewal) return
+    if (!editForm.joiningDate || !editForm.membershipType || !memberships.length) return
+    const m = memberships.find((x) => x.membershipId.toString() === editForm.membershipType)
+    if (m?.durationDays) {
+      const d = new Date(editForm.joiningDate)
+      d.setDate(d.getDate() + m.durationDays)
+      setEditForm((prev) => ({ ...prev, expiryDate: d.toISOString().split('T')[0] }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editForm.joiningDate, editForm.membershipType, memberships])
+
+  const handleEditFormChange = (e: any) => {
+    const { name, value } = e.target
+    setEditForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleEditRenewalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingRenewal || !client) return
+    setSavingRenewal(true)
+    try {
+      const res = await fetch(`/api/renewals/${editingRenewal._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          membershipType: editForm.membershipType,
+          joiningDate: editForm.joiningDate || undefined,
+          expiryDate: editForm.expiryDate || undefined,
+          membershipFee: editForm.membershipFee ? parseFloat(editForm.membershipFee) : undefined,
+          discount: parseFloat(editForm.discount) || 0,
+          paidAmount: editForm.paidAmount ? parseFloat(editForm.paidAmount) : undefined,
+          paymentDate: editForm.paymentDate || undefined,
+          paymentMode: editForm.paymentMode || undefined,
+          transactionId: editForm.transactionId || undefined,
+        }),
+      })
+      if (res.ok) {
+        await fetchRenewals(client.clientId)
+        await fetchClient()
+        setEditingRenewal(null)
+      } else {
+        const err = await res.json().catch(() => null)
+        alert(err?.error || 'Failed to update renewal')
+      }
+    } catch (err) {
+      console.error('Error updating renewal:', err)
+      alert('Failed to update renewal')
+    } finally {
+      setSavingRenewal(false)
+    }
+  }
+
+  const handleDeleteRenewal = async (renewal: Renewal) => {
+    if (!client) return
+    if (!confirm('Are you sure you want to delete this renewal?')) return
+    setDeletingRenewal(true)
+    try {
+      const res = await fetch(`/api/renewals/${renewal._id}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        await fetchRenewals(client.clientId)
+        await fetchClient()
+        if (editingRenewal && editingRenewal._id === renewal._id) {
+          setEditingRenewal(null)
+        }
+      } else {
+        const err = await res.json().catch(() => null)
+        alert(err?.error || 'Failed to delete renewal')
+      }
+    } catch (err) {
+      console.error('Error deleting renewal:', err)
+      alert('Failed to delete renewal')
+    } finally {
+      setDeletingRenewal(false)
     }
   }
 
@@ -359,6 +550,76 @@ export default function ViewClientPage() {
             </div>
           </div>
 
+          {/* Renewal History */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-fitura-blue" />
+              Renewal History
+            </h2>
+            {renewalsLoading ? (
+              <p className="text-sm text-gray-500">Loading renewals...</p>
+            ) : renewals.length === 0 ? (
+              <p className="text-sm text-gray-500">No renewals recorded for this client.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs font-semibold text-gray-500 uppercase border-b">
+                      <th className="py-2 pr-4">Plan</th>
+                      <th className="py-2 pr-4">Start</th>
+                      <th className="py-2 pr-4">Expiry</th>
+                      <th className="py-2 pr-4">Paid</th>
+                      <th className="py-2 pr-4">Payment Date</th>
+                      <th className="py-2 pr-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renewals.map((r) => (
+                      <tr key={r._id} className="border-b last:border-0">
+                        <td className="py-2 pr-4">
+                          {r.membershipName || r.membershipType || 'N/A'}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {r.joiningDate ? formatDate(r.joiningDate) : 'N/A'}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {r.expiryDate ? formatDate(r.expiryDate) : 'N/A'}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {r.paidAmount != null ? formatCurrency(r.paidAmount) : 'N/A'}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {r.paymentDate ? formatDate(r.paymentDate) : 'N/A'}
+                        </td>
+                        <td className="py-2 pr-0 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEditRenewal(r)}
+                              className="p-1 rounded hover:bg-gray-100 text-fitura-blue"
+                              title="Edit renewal"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRenewal(r)}
+                              className="p-1 rounded hover:bg-red-50 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={deletingRenewal}
+                              title="Delete renewal"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {/* Health & Fitness Information */}
           {(client.medicalConditions || client.fitnessGoals || client.firstTimeInGym || client.previousGymDetails) && (
             <div className="bg-white rounded-xl shadow-lg p-6">
@@ -410,6 +671,187 @@ export default function ViewClientPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Renewal Modal */}
+      {editingRenewal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => !savingRenewal && setEditingRenewal(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Edit Renewal</h2>
+                <button
+                  type="button"
+                  onClick={() => !savingRenewal && setEditingRenewal(null)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-6">
+                {client.firstName} {client.lastName} (ID: {client.clientId})
+              </p>
+              <form onSubmit={handleEditRenewalSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subscription <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="membershipType"
+                    value={editForm.membershipType}
+                    onChange={handleEditFormChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                  >
+                    <option value="">Select subscription</option>
+                    {memberships.map((m) => (
+                      <option key={m.membershipId} value={m.membershipId}>
+                        {m.name} {m.price != null ? `— ₹${m.price}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      name="joiningDate"
+                      value={editForm.joiningDate}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Expiry Date
+                    </label>
+                    <input
+                      type="date"
+                      name="expiryDate"
+                      value={editForm.expiryDate}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Membership Fee (₹)
+                    </label>
+                    <input
+                      type="number"
+                      name="membershipFee"
+                      value={editForm.membershipFee}
+                      onChange={handleEditFormChange}
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Discount (₹)
+                    </label>
+                    <input
+                      type="number"
+                      name="discount"
+                      value={editForm.discount}
+                      onChange={handleEditFormChange}
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Paid Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    name="paidAmount"
+                    value={editForm.paidAmount}
+                    onChange={handleEditFormChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    name="paymentDate"
+                    value={editForm.paymentDate}
+                    onChange={handleEditFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Payment Mode
+                    </label>
+                    <select
+                      name="paymentMode"
+                      value={editForm.paymentMode}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                    >
+                      <option value="">Select</option>
+                      <option value="UPI">UPI</option>
+                      <option value="Card">Card</option>
+                      <option value="Cash">Cash</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Transaction ID
+                    </label>
+                    <input
+                      type="text"
+                      name="transactionId"
+                      value={editForm.transactionId}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => !savingRenewal && setEditingRenewal(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingRenewal || !editForm.membershipType}
+                    className="flex-1 px-4 py-2 bg-fitura-dark text-white rounded-lg font-medium hover:bg-fitura-blue disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingRenewal ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

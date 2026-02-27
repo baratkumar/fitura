@@ -124,10 +124,11 @@ export default function ClientsPage() {
     if (!renewClient) return
     setRenewing(true)
     try {
-      const res = await fetch(`/api/clients/${renewClient.clientId}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/renewals`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          clientId: renewClient.clientId,
           membershipType: renewForm.membershipType,
           joiningDate: renewForm.joiningDate || undefined,
           expiryDate: renewForm.expiryDate || undefined,

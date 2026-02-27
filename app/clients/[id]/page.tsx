@@ -106,6 +106,29 @@ export default function ViewClientPage() {
     return `₹${amount.toFixed(2)}`
   }
 
+  const getRenewalStatus = (expiryDate?: string) => {
+    if (!expiryDate) return 'No membership expiry set'
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const expiry = new Date(expiryDate)
+    expiry.setHours(0, 0, 0, 0)
+
+    const diffMs = expiry.getTime() - today.getTime()
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays === 1 ? '' : 's'} remaining`
+    }
+
+    if (diffDays === 0) {
+      return 'Expires today'
+    }
+
+    const daysAgo = Math.abs(diffDays)
+    return `Expired ${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`
+  }
+
   return (
     <div className="container mx-auto px-4 py-10">
       {/* Header */}
@@ -258,6 +281,28 @@ export default function ViewClientPage() {
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase">Expiry Date</label>
                 <p className="text-gray-900">{formatDate(client.expiryDate)}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase">Renewal Status</label>
+                <p
+                  className={`text-sm font-semibold ${
+                    client.expiryDate
+                      ? (() => {
+                          const today = new Date()
+                          today.setHours(0, 0, 0, 0)
+                          const expiry = new Date(client.expiryDate!)
+                          expiry.setHours(0, 0, 0, 0)
+                          const diffMs = expiry.getTime() - today.getTime()
+                          const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+                          if (diffDays > 7) return 'text-green-600'
+                          if (diffDays >= 0) return 'text-orange-600'
+                          return 'text-red-600'
+                        })()
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {getRenewalStatus(client.expiryDate)}
+                </p>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase">Membership Fee</label>

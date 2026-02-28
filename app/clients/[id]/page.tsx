@@ -171,11 +171,7 @@ export default function ViewClientPage() {
     if (m) {
       const fee = m.price ?? 0
       const disc = parseFloat(editForm.discount) || 0
-      setEditForm((prev) => ({
-        ...prev,
-        membershipFee: fee.toString(),
-        paidAmount: (fee - disc).toString(),
-      }))
+      setEditForm((prev) => ({ ...prev, membershipFee: fee.toString(), paidAmount: (fee - disc).toString() }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editForm.membershipType, editForm.discount, memberships])
@@ -238,9 +234,7 @@ export default function ViewClientPage() {
     if (!confirm('Are you sure you want to delete this renewal?')) return
     setDeletingRenewal(true)
     try {
-      const res = await fetch(`/api/renewals/${renewal._id}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/renewals/${renewal._id}`, { method: 'DELETE' })
       if (res.ok) {
         await fetchRenewals(client.clientId)
         await fetchClient()
@@ -270,14 +264,9 @@ export default function ViewClientPage() {
   if (!client) {
     return (
       <div className="container mx-auto px-4 py-10">
-        <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-          <h2 className="text-2xl font-semibold mb-4">Client not found</h2>
-          <Link
-            href="/clients"
-            className="text-fitura-blue hover:text-fitura-magenta"
-          >
-            ← Back to Clients
-          </Link>
+        <div className="bg-luxury-surface border border-luxury-border rounded-xl p-12 text-center">
+          <h2 className="text-xl font-semibold text-luxury-text mb-4">Client not found</h2>
+          <Link href="/clients" className="text-gold hover:text-gold-light text-sm">← Back to Clients</Link>
         </div>
       </div>
     )
@@ -285,11 +274,7 @@ export default function ViewClientPage() {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
+    return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   }
 
   const formatCurrency = (amount?: number) => {
@@ -299,65 +284,67 @@ export default function ViewClientPage() {
 
   const getRenewalStatus = (expiryDate?: string) => {
     if (!expiryDate) return 'No membership expiry set'
-
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const expiry = new Date(expiryDate)
-    expiry.setHours(0, 0, 0, 0)
-
-    const diffMs = expiry.getTime() - today.getTime()
-    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
-
-    if (diffDays > 0) {
-      return `${diffDays} day${diffDays === 1 ? '' : 's'} remaining`
-    }
-
-    if (diffDays === 0) {
-      return 'Expires today'
-    }
-
-    const daysAgo = Math.abs(diffDays)
-    return `Expired ${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const expiry = new Date(expiryDate); expiry.setHours(0, 0, 0, 0)
+    const diffDays = Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays > 0) return `${diffDays} day${diffDays === 1 ? '' : 's'} remaining`
+    if (diffDays === 0) return 'Expires today'
+    return `Expired ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} ago`
   }
+
+  const getRenewalStatusColor = (expiryDate?: string) => {
+    if (!expiryDate) return 'text-luxury-muted'
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const expiry = new Date(expiryDate); expiry.setHours(0, 0, 0, 0)
+    const diffDays = Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays > 7) return 'text-green-400'
+    if (diffDays >= 0) return 'text-orange-400'
+    return 'text-red-400'
+  }
+
+  // Shared styles
+  const cardCls = "bg-luxury-surface border border-luxury-border rounded-xl p-6"
+  const sectionTitleCls = "text-sm font-bold text-gold uppercase tracking-widest mb-4 flex items-center gap-2"
+  const labelCls = "text-xs font-medium text-luxury-muted uppercase tracking-wider"
+  const valueCls = "text-luxury-text text-sm mt-0.5"
+  const modalInputCls = "w-full px-3 py-2 bg-luxury-card border border-luxury-border rounded-lg text-luxury-text placeholder-luxury-subtle focus:outline-none focus:border-gold/50 text-sm"
+  const modalLabelCls = "block text-xs font-medium text-luxury-muted uppercase tracking-wider mb-1"
 
   return (
     <div className="container mx-auto px-4 py-10">
       {/* Header */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/clients"
-            className="text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6" />
+      <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div className="flex items-start gap-4">
+          <Link href="/clients"
+            className="mt-1 p-2 rounded-lg border border-luxury-border text-luxury-muted hover:border-gold/40 hover:text-gold transition-colors">
+            <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+            <p className="text-xs font-semibold tracking-widest text-gold uppercase mb-1">Client Profile</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-luxury-text">
               {client.firstName} {client.lastName}
             </h1>
-            <p className="text-gray-600 text-sm sm:text-base">Client ID: {client.clientId}</p>
+            <p className="text-luxury-muted text-sm mt-1">ID: {client.clientId}</p>
           </div>
         </div>
-        <Link
-          href={`/clients/${clientId}/edit`}
-          className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors flex items-center gap-2"
-        >
+        <Link href={`/clients/${clientId}/edit`}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gold text-luxury-black text-sm font-semibold rounded-lg hover:bg-gold-light transition-colors">
           <Edit className="w-4 h-4" />
           Edit Client
         </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Profile Photo and Basic Info */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            {/* Profile Photo */}
+        {/* Left Column - Profile */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className={cardCls}>
+            {/* Photo */}
             <div className="flex justify-center mb-6">
               {client.photoUrl ? (
                 <img
                   src={client.photoUrl}
                   alt={`${client.firstName} ${client.lastName}`}
-                  className="w-48 h-48 object-cover rounded-lg border-4 border-gray-200 shadow-lg"
+                  className="w-44 h-44 object-cover rounded-xl border-2 border-gold/30 shadow-lg"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'
                     const fallback = e.currentTarget.nextElementSibling as HTMLElement
@@ -365,250 +352,140 @@ export default function ViewClientPage() {
                   }}
                 />
               ) : null}
-              <div
-                className={`w-48 h-48 bg-gray-200 rounded-lg border-4 border-gray-200 shadow-lg flex items-center justify-center ${client.photoUrl ? 'hidden' : ''}`}
-              >
-                <Users className="w-24 h-24 text-gray-400" />
+              <div className={`w-44 h-44 bg-gold/10 rounded-xl border-2 border-gold/20 flex items-center justify-center ${client.photoUrl ? 'hidden' : ''}`}>
+                <Users className="w-20 h-20 text-gold/30" />
               </div>
             </div>
 
-            {/* Basic Contact Info */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-gray-700">
-                <Mail className="w-5 h-5 text-fitura-blue" />
-                <span className="text-sm">{client.email}</span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-700">
-                <Phone className="w-5 h-5 text-fitura-blue" />
-                <span className="text-sm">{client.phone}</span>
+            {/* Contact */}
+            <div className="space-y-3">
+              {client.email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-gold/60 shrink-0" />
+                  <span className="text-sm text-luxury-muted">{client.email}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <Phone className="w-4 h-4 text-gold/60 shrink-0" />
+                <span className="text-sm text-luxury-muted">{client.phone}</span>
               </div>
               {client.address && (
-                <div className="flex items-start gap-3 text-gray-700">
-                  <MapPin className="w-5 h-5 text-fitura-blue mt-0.5" />
-                  <span className="text-sm">{client.address}</span>
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-4 h-4 text-gold/60 shrink-0 mt-0.5" />
+                  <span className="text-sm text-luxury-muted">{client.address}</span>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Right Column - Detailed Information */}
+        {/* Right Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Personal Information */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <User className="w-5 h-5 text-fitura-blue" />
-              Personal Information
+          <div className={cardCls}>
+            <h2 className={sectionTitleCls}>
+              <User className="w-4 h-4" /> Personal Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Date of Birth</label>
-                <p className="text-gray-900">{formatDate(client.dateOfBirth)}</p>
-              </div>
-              {client.age && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Age</label>
-                  <p className="text-gray-900">{client.age} years</p>
-                </div>
-              )}
-              {client.gender && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Gender</label>
-                  <p className="text-gray-900">{client.gender}</p>
-                </div>
-              )}
-              {client.bloodGroup && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Blood Group</label>
-                  <p className="text-gray-900">{client.bloodGroup}</p>
-                </div>
-              )}
-              {client.height && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Height</label>
-                  <p className="text-gray-900">{client.height} cm</p>
-                </div>
-              )}
-              {client.weight && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Weight</label>
-                  <p className="text-gray-900">{client.weight} kg</p>
-                </div>
-              )}
-              {client.bmi && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">BMI</label>
-                  <p className="text-gray-900">{client.bmi.toFixed(2)}</p>
-                </div>
-              )}
-              {client.aadharNumber && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Aadhar Number</label>
-                  <p className="text-gray-900">{client.aadharNumber}</p>
-                </div>
-              )}
+              <div><p className={labelCls}>Date of Birth</p><p className={valueCls}>{formatDate(client.dateOfBirth)}</p></div>
+              {client.age && <div><p className={labelCls}>Age</p><p className={valueCls}>{client.age} years</p></div>}
+              {client.gender && <div><p className={labelCls}>Gender</p><p className={valueCls}>{client.gender}</p></div>}
+              {client.bloodGroup && <div><p className={labelCls}>Blood Group</p><p className={valueCls}>{client.bloodGroup}</p></div>}
+              {client.height && <div><p className={labelCls}>Height</p><p className={valueCls}>{client.height} cm</p></div>}
+              {client.weight && <div><p className={labelCls}>Weight</p><p className={valueCls}>{client.weight} kg</p></div>}
+              {client.bmi && <div><p className={labelCls}>BMI</p><p className={valueCls}>{client.bmi.toFixed(2)}</p></div>}
+              {client.aadharNumber && <div><p className={labelCls}>Aadhar Number</p><p className={valueCls}>{client.aadharNumber}</p></div>}
             </div>
           </div>
 
           {/* Membership Information */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-fitura-blue" />
-              Membership Information
+          <div className={cardCls}>
+            <h2 className={sectionTitleCls}>
+              <CreditCard className="w-4 h-4" /> Membership Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Membership Type</label>
-                <p className="text-gray-900">
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-fitura-purple-100 text-fitura-purple-800">
-                    {client.membershipName || 'N/A'}
-                  </span>
-                </p>
+                <p className={labelCls}>Membership Type</p>
+                <span className="inline-block mt-1 px-2 py-1 text-xs font-medium rounded-full bg-gold/10 text-gold border border-gold/20">
+                  {client.membershipName || 'N/A'}
+                </span>
               </div>
+              <div><p className={labelCls}>Joining Date</p><p className={valueCls}>{formatDate(client.joiningDate)}</p></div>
+              <div><p className={labelCls}>Expiry Date</p><p className={valueCls}>{formatDate(client.expiryDate)}</p></div>
               <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Joining Date</label>
-                <p className="text-gray-900">{formatDate(client.joiningDate)}</p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Expiry Date</label>
-                <p className="text-gray-900">{formatDate(client.expiryDate)}</p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Renewal Status</label>
-                <p
-                  className={`text-sm font-semibold ${
-                    client.expiryDate
-                      ? (() => {
-                          const today = new Date()
-                          today.setHours(0, 0, 0, 0)
-                          const expiry = new Date(client.expiryDate!)
-                          expiry.setHours(0, 0, 0, 0)
-                          const diffMs = expiry.getTime() - today.getTime()
-                          const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
-                          if (diffDays > 7) return 'text-green-600'
-                          if (diffDays >= 0) return 'text-orange-600'
-                          return 'text-red-600'
-                        })()
-                      : 'text-gray-500'
-                  }`}
-                >
+                <p className={labelCls}>Renewal Status</p>
+                <p className={`text-sm font-semibold mt-0.5 ${getRenewalStatusColor(client.expiryDate)}`}>
                   {getRenewalStatus(client.expiryDate)}
                 </p>
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Membership Fee</label>
-                <p className="text-gray-900">{formatCurrency(client.membershipFee)}</p>
-              </div>
+              <div><p className={labelCls}>Membership Fee</p><p className={valueCls}>{formatCurrency(client.membershipFee)}</p></div>
               {client.discount && client.discount > 0 && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Discount</label>
-                  <p className="text-gray-900 text-green-600">{formatCurrency(client.discount)}</p>
-                </div>
+                <div><p className={labelCls}>Discount</p><p className="text-green-400 text-sm mt-0.5">{formatCurrency(client.discount)}</p></div>
               )}
               <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Paid Amount</label>
-                <p className={`text-gray-900 ${client.paidAmount && client.membershipFee && client.paidAmount < (client.membershipFee - (client.discount || 0)) ? 'text-red-600 font-semibold' : ''}`}>
+                <p className={labelCls}>Paid Amount</p>
+                <p className={`text-sm mt-0.5 ${client.paidAmount && client.membershipFee && client.paidAmount < (client.membershipFee - (client.discount || 0)) ? 'text-red-400 font-semibold' : 'text-luxury-text'}`}>
                   {formatCurrency(client.paidAmount)}
                 </p>
               </div>
-              {client.paymentDate && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Payment Date</label>
-                  <p className="text-gray-900">{formatDate(client.paymentDate)}</p>
-                </div>
-              )}
-              {client.paymentMode && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Payment Mode</label>
-                  <p className="text-gray-900">{client.paymentMode}</p>
-                </div>
-              )}
+              {client.paymentDate && <div><p className={labelCls}>Payment Date</p><p className={valueCls}>{formatDate(client.paymentDate)}</p></div>}
+              {client.paymentMode && <div><p className={labelCls}>Payment Mode</p><p className={valueCls}>{client.paymentMode}</p></div>}
               {client.transactionId && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase">Transaction ID</label>
-                  <p className="text-gray-900 font-mono text-sm">{client.transactionId}</p>
-                </div>
+                <div><p className={labelCls}>Transaction ID</p><p className="text-luxury-muted text-sm font-mono mt-0.5">{client.transactionId}</p></div>
               )}
             </div>
           </div>
 
           {/* Emergency Contact */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Phone className="w-5 h-5 text-fitura-blue" />
-              Emergency Contact
+          <div className={cardCls}>
+            <h2 className={sectionTitleCls}>
+              <Phone className="w-4 h-4" /> Emergency Contact
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Contact Name</label>
-                <p className="text-gray-900">{client.emergencyContactName}</p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Contact Phone</label>
-                <p className="text-gray-900">{client.emergencyContactPhone}</p>
-              </div>
+              <div><p className={labelCls}>Contact Name</p><p className={valueCls}>{client.emergencyContactName}</p></div>
+              <div><p className={labelCls}>Contact Phone</p><p className={valueCls}>{client.emergencyContactPhone}</p></div>
             </div>
           </div>
 
           {/* Renewal History */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-fitura-blue" />
-              Renewal History
+          <div className={cardCls}>
+            <h2 className={sectionTitleCls}>
+              <CreditCard className="w-4 h-4" /> Renewal History
             </h2>
             {renewalsLoading ? (
-              <p className="text-sm text-gray-500">Loading renewals...</p>
+              <p className="text-sm text-luxury-muted">Loading renewals...</p>
             ) : renewals.length === 0 ? (
-              <p className="text-sm text-gray-500">No renewals recorded for this client.</p>
+              <p className="text-sm text-luxury-muted">No renewals recorded for this client.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr className="text-left text-xs font-semibold text-gray-500 uppercase border-b">
-                      <th className="py-2 pr-4">Plan</th>
-                      <th className="py-2 pr-4">Start</th>
-                      <th className="py-2 pr-4">Expiry</th>
-                      <th className="py-2 pr-4">Paid</th>
-                      <th className="py-2 pr-4">Payment Date</th>
-                      <th className="py-2 pr-4 text-right">Actions</th>
+                    <tr className="border-b border-luxury-border">
+                      <th className="py-2 pr-4 text-left text-xs font-semibold text-gold uppercase tracking-wider">Plan</th>
+                      <th className="py-2 pr-4 text-left text-xs font-semibold text-gold uppercase tracking-wider">Start</th>
+                      <th className="py-2 pr-4 text-left text-xs font-semibold text-gold uppercase tracking-wider">Expiry</th>
+                      <th className="py-2 pr-4 text-left text-xs font-semibold text-gold uppercase tracking-wider">Paid</th>
+                      <th className="py-2 pr-4 text-left text-xs font-semibold text-gold uppercase tracking-wider">Payment Date</th>
+                      <th className="py-2 text-right text-xs font-semibold text-gold uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-luxury-border">
                     {renewals.map((r) => (
-                      <tr key={r._id} className="border-b last:border-0">
-                        <td className="py-2 pr-4">
-                          {r.membershipName || r.membershipType || 'N/A'}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {r.joiningDate ? formatDate(r.joiningDate) : 'N/A'}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {r.expiryDate ? formatDate(r.expiryDate) : 'N/A'}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {r.paidAmount != null ? formatCurrency(r.paidAmount) : 'N/A'}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {r.paymentDate ? formatDate(r.paymentDate) : 'N/A'}
-                        </td>
-                        <td className="py-2 pr-0 text-right">
-                          <div className="inline-flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openEditRenewal(r)}
-                              className="p-1 rounded hover:bg-gray-100 text-fitura-blue"
-                              title="Edit renewal"
-                            >
-                              <Edit className="w-4 h-4" />
+                      <tr key={r._id} className="hover:bg-luxury-card/40 transition-colors">
+                        <td className="py-3 pr-4 text-luxury-text">{r.membershipName || r.membershipType || 'N/A'}</td>
+                        <td className="py-3 pr-4 text-luxury-muted">{r.joiningDate ? formatDate(r.joiningDate) : 'N/A'}</td>
+                        <td className="py-3 pr-4 text-luxury-muted">{r.expiryDate ? formatDate(r.expiryDate) : 'N/A'}</td>
+                        <td className="py-3 pr-4 text-luxury-muted">{r.paidAmount != null ? formatCurrency(r.paidAmount) : 'N/A'}</td>
+                        <td className="py-3 pr-4 text-luxury-muted">{r.paymentDate ? formatDate(r.paymentDate) : 'N/A'}</td>
+                        <td className="py-3 text-right">
+                          <div className="inline-flex items-center gap-1">
+                            <button type="button" onClick={() => openEditRenewal(r)} title="Edit renewal"
+                              className="p-1.5 rounded-lg text-luxury-muted hover:text-gold hover:bg-gold/10 transition-colors">
+                              <Edit className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteRenewal(r)}
-                              className="p-1 rounded hover:bg-red-50 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                              disabled={deletingRenewal}
-                              title="Delete renewal"
-                            >
-                              <Trash2 className="w-4 h-4" />
+                            <button type="button" onClick={() => handleDeleteRenewal(r)} disabled={deletingRenewal} title="Delete renewal"
+                              className="p-1.5 rounded-lg text-luxury-muted hover:text-red-400 hover:bg-red-400/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -620,53 +497,37 @@ export default function ViewClientPage() {
             )}
           </div>
 
-          {/* Health & Fitness Information */}
+          {/* Health & Fitness */}
           {(client.medicalConditions || client.fitnessGoals || client.firstTimeInGym || client.previousGymDetails) && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-fitura-blue" />
-                Health & Fitness Information
+            <div className={cardCls}>
+              <h2 className={sectionTitleCls}>
+                <Activity className="w-4 h-4" /> Health & Fitness
               </h2>
               <div className="space-y-4">
                 {client.medicalConditions && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Medical Conditions</label>
-                    <p className="text-gray-900 mt-1">{client.medicalConditions}</p>
-                  </div>
+                  <div><p className={labelCls}>Medical Conditions</p><p className="text-luxury-text text-sm mt-1">{client.medicalConditions}</p></div>
                 )}
                 {client.fitnessGoals && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Fitness Goals</label>
-                    <p className="text-gray-900 mt-1">{client.fitnessGoals}</p>
-                  </div>
+                  <div><p className={labelCls}>Fitness Goals</p><p className="text-luxury-text text-sm mt-1">{client.fitnessGoals}</p></div>
                 )}
                 {client.firstTimeInGym && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">First Time in Gym</label>
-                    <p className="text-gray-900 mt-1">{client.firstTimeInGym}</p>
-                  </div>
+                  <div><p className={labelCls}>First Time in Gym</p><p className="text-luxury-text text-sm mt-1">{client.firstTimeInGym}</p></div>
                 )}
                 {client.previousGymDetails && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Previous Gym Details</label>
-                    <p className="text-gray-900 mt-1">{client.previousGymDetails}</p>
-                  </div>
+                  <div><p className={labelCls}>Previous Gym Details</p><p className="text-luxury-text text-sm mt-1">{client.previousGymDetails}</p></div>
                 )}
               </div>
             </div>
           )}
 
           {/* Account Information */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-fitura-blue" />
-              Account Information
+          <div className={cardCls}>
+            <h2 className={sectionTitleCls}>
+              <FileText className="w-4 h-4" /> Account Information
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Registered On</label>
-                <p className="text-gray-900">{formatDate(client.createdAt)}</p>
-              </div>
+            <div>
+              <p className={labelCls}>Registered On</p>
+              <p className={valueCls}>{formatDate(client.createdAt)}</p>
             </div>
           </div>
         </div>
@@ -674,41 +535,25 @@ export default function ViewClientPage() {
 
       {/* Edit Renewal Modal */}
       {editingRenewal && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-          onClick={() => !savingRenewal && setEditingRenewal(null)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => !savingRenewal && setEditingRenewal(null)}>
+          <div className="bg-luxury-surface border border-luxury-border rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">Edit Renewal</h2>
-                <button
-                  type="button"
-                  onClick={() => !savingRenewal && setEditingRenewal(null)}
-                  className="p-2 rounded-lg hover:bg-gray-100"
-                  aria-label="Close"
-                >
+              <div className="flex justify-between items-center mb-1">
+                <h2 className="text-lg font-bold text-luxury-text">Edit Renewal</h2>
+                <button type="button" onClick={() => !savingRenewal && setEditingRenewal(null)}
+                  className="p-1.5 rounded-lg hover:bg-luxury-elevated text-luxury-muted hover:text-luxury-text transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-gray-600 mb-6">
-                {client.firstName} {client.lastName} (ID: {client.clientId})
+              <p className="text-sm text-luxury-muted mb-6">
+                {client.firstName} {client.lastName} <span className="text-luxury-subtle">· ID {client.clientId}</span>
               </p>
               <form onSubmit={handleEditRenewalSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subscription <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="membershipType"
-                    value={editForm.membershipType}
-                    onChange={handleEditFormChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                  >
+                  <label className={modalLabelCls}>Subscription <span className="text-red-400">*</span></label>
+                  <select name="membershipType" value={editForm.membershipType} onChange={handleEditFormChange} required className={modalInputCls}>
                     <option value="">Select subscription</option>
                     {memberships.map((m) => (
                       <option key={m.membershipId} value={m.membershipId}>
@@ -719,98 +564,36 @@ export default function ViewClientPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      name="joiningDate"
-                      value={editForm.joiningDate}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    />
+                    <label className={modalLabelCls}>Start Date</label>
+                    <input type="date" name="joiningDate" value={editForm.joiningDate} onChange={handleEditFormChange} className={modalInputCls} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="date"
-                      name="expiryDate"
-                      value={editForm.expiryDate}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    />
+                    <label className={modalLabelCls}>Expiry Date</label>
+                    <input type="date" name="expiryDate" value={editForm.expiryDate} onChange={handleEditFormChange} className={modalInputCls} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Membership Fee (₹)
-                    </label>
-                    <input
-                      type="number"
-                      name="membershipFee"
-                      value={editForm.membershipFee}
-                      onChange={handleEditFormChange}
-                      min="0"
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    />
+                    <label className={modalLabelCls}>Membership Fee (₹)</label>
+                    <input type="number" name="membershipFee" value={editForm.membershipFee} onChange={handleEditFormChange} min="0" step="0.01" className={modalInputCls} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Discount (₹)
-                    </label>
-                    <input
-                      type="number"
-                      name="discount"
-                      value={editForm.discount}
-                      onChange={handleEditFormChange}
-                      min="0"
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    />
+                    <label className={modalLabelCls}>Discount (₹)</label>
+                    <input type="number" name="discount" value={editForm.discount} onChange={handleEditFormChange} min="0" step="0.01" className={modalInputCls} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Paid Amount (₹)
-                  </label>
-                  <input
-                    type="number"
-                    name="paidAmount"
-                    value={editForm.paidAmount}
-                    onChange={handleEditFormChange}
-                    min="0"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    placeholder="0.00"
-                  />
+                  <label className={modalLabelCls}>Paid Amount (₹)</label>
+                  <input type="number" name="paidAmount" value={editForm.paidAmount} onChange={handleEditFormChange} min="0" step="0.01" placeholder="0.00" className={modalInputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Payment Date
-                  </label>
-                  <input
-                    type="date"
-                    name="paymentDate"
-                    value={editForm.paymentDate}
-                    onChange={handleEditFormChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                  />
+                  <label className={modalLabelCls}>Payment Date</label>
+                  <input type="date" name="paymentDate" value={editForm.paymentDate} onChange={handleEditFormChange} className={modalInputCls} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Payment Mode
-                    </label>
-                    <select
-                      name="paymentMode"
-                      value={editForm.paymentMode}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    >
+                    <label className={modalLabelCls}>Payment Mode</label>
+                    <select name="paymentMode" value={editForm.paymentMode} onChange={handleEditFormChange} className={modalInputCls}>
                       <option value="">Select</option>
                       <option value="UPI">UPI</option>
                       <option value="Card">Card</option>
@@ -818,33 +601,18 @@ export default function ViewClientPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Transaction ID
-                    </label>
-                    <input
-                      type="text"
-                      name="transactionId"
-                      value={editForm.transactionId}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                      placeholder="Optional"
-                    />
+                    <label className={modalLabelCls}>Transaction ID</label>
+                    <input type="text" name="transactionId" value={editForm.transactionId} onChange={handleEditFormChange} placeholder="Optional" className={modalInputCls} />
                   </div>
                 </div>
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => !savingRenewal && setEditingRenewal(null)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
-                  >
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => !savingRenewal && setEditingRenewal(null)}
+                    className="flex-1 px-4 py-2.5 border border-luxury-border rounded-lg text-sm font-medium text-luxury-muted hover:border-luxury-elevated hover:text-luxury-text transition-colors">
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={savingRenewal || !editForm.membershipType}
-                    className="flex-1 px-4 py-2 bg-fitura-dark text-white rounded-lg font-medium hover:bg-fitura-blue disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {savingRenewal ? 'Saving…' : 'Save'}
+                  <button type="submit" disabled={savingRenewal || !editForm.membershipType}
+                    className="flex-1 px-4 py-2.5 bg-gold text-luxury-black rounded-lg text-sm font-semibold hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    {savingRenewal ? 'Saving…' : 'Save Changes'}
                   </button>
                 </div>
               </form>

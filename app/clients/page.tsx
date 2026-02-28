@@ -194,12 +194,8 @@ export default function ClientsPage() {
 
   const handleDelete = async (clientId: number) => {
     if (!confirm('Are you sure you want to delete this client?')) return
-
     try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'DELETE',
-      })
-
+      const response = await fetch(`/api/clients/${clientId}`, { method: 'DELETE' })
       if (response.ok) {
         const remaining = clients.filter(client => client.clientId !== clientId)
         setClients(remaining)
@@ -216,25 +212,25 @@ export default function ClientsPage() {
   const startItem = total === 0 ? 0 : (page - 1) * limit + 1
   const endItem = Math.min(page * limit, total)
 
-  const isPaidClient = (client: Client) => {
-    const paidAmount = client.paidAmount ?? 0
-    return paidAmount > 0
-  }
+  const isPaidClient = (client: Client) => (client.paidAmount ?? 0) > 0
 
   const handleDownloadReceipt = (client: Client) => {
     openReceiptPrint(client)
   }
 
+  // Shared input style for filter fields
+  const filterInputCls = "w-full px-2 py-1 text-xs bg-luxury-card border border-luxury-border rounded text-luxury-text placeholder-luxury-subtle focus:outline-none focus:border-gold/50"
+
   const paginationBar = (
-    <div className="px-3 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+    <div className="px-4 sm:px-6 py-4 border-t border-luxury-border flex flex-col sm:flex-row items-center justify-between gap-4">
       <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-        <p className="text-sm text-gray-600">
-          Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of <span className="font-medium">{total}</span> clients
+        <p className="text-sm text-luxury-muted">
+          Showing <span className="text-luxury-text font-medium">{startItem}</span> – <span className="text-luxury-text font-medium">{endItem}</span> of <span className="text-luxury-text font-medium">{total}</span>
         </p>
         <select
           value={limit}
-          onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
+          onChange={(e) => { setLimit(Number(e.target.value)); setPage(1) }}
+          className="text-sm bg-luxury-card border border-luxury-border rounded-lg px-2 py-1.5 text-luxury-text focus:outline-none focus:border-gold/50"
         >
           {PAGE_SIZES.map((n) => (
             <option key={n} value={n}>{n} per page</option>
@@ -242,56 +238,44 @@ export default function ClientsPage() {
         </select>
       </div>
       <div className="flex items-center gap-1 sm:gap-2">
-        <button
-          onClick={() => setPage(1)}
-          disabled={page <= 1}
-          className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="First page"
-        >
-          <ChevronsLeft className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page <= 1}
-          className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Previous page"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <span className="text-sm text-gray-600 px-2 min-w-[7rem] text-center">
+        {[
+          { onClick: () => setPage(1), disabled: page <= 1, icon: ChevronsLeft, title: 'First page' },
+          { onClick: () => setPage(p => Math.max(1, p - 1)), disabled: page <= 1, icon: ChevronLeft, title: 'Previous page' },
+          { onClick: () => setPage(p => Math.min(totalPages, p + 1)), disabled: page >= totalPages, icon: ChevronRight, title: 'Next page' },
+          { onClick: () => setPage(totalPages), disabled: page >= totalPages, icon: ChevronsRight, title: 'Last page' },
+        ].map(({ onClick, disabled, icon: Icon, title }, i) => (
+          <button
+            key={i}
+            onClick={onClick}
+            disabled={disabled}
+            title={title}
+            className="p-2 rounded-lg border border-luxury-border text-luxury-muted hover:border-gold/40 hover:text-gold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <Icon className="w-4 h-4" />
+          </button>
+        ))}
+        <span className="text-sm text-luxury-muted px-2 min-w-[7rem] text-center">
           Page {page} of {totalPages || 1}
         </span>
-        <button
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          disabled={page >= totalPages}
-          className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Next page"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => setPage(totalPages)}
-          disabled={page >= totalPages}
-          className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Last page"
-        >
-          <ChevronsRight className="w-5 h-5" />
-        </button>
       </div>
     </div>
   )
+
+  // Modal form field styles
+  const modalInputCls = "w-full px-3 py-2 bg-luxury-card border border-luxury-border rounded-lg text-luxury-text placeholder-luxury-subtle focus:outline-none focus:border-gold/50"
+  const modalLabelCls = "block text-xs font-medium text-luxury-muted uppercase tracking-wider mb-1"
 
   if (loading && clients.length === 0) {
     return (
       <div className="container mx-auto px-4 py-10">
         <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Clients</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Manage your gym members</p>
+            <p className="text-xs font-semibold tracking-widest text-gold uppercase mb-1">Members</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-luxury-text">Clients</h1>
           </div>
           <Link
             href="/clients/new"
-            className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
+            className="px-5 py-2.5 bg-gold text-luxury-black text-sm font-semibold rounded-lg hover:bg-gold-light transition-colors text-center"
           >
             + Register New Client
           </Link>
@@ -303,223 +287,177 @@ export default function ClientsPage() {
 
   return (
     <div className="container mx-auto px-4 py-10">
+      {/* Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Clients</h1>
-          <p className="text-gray-600 text-sm sm:text-base">Manage your gym members</p>
+          <p className="text-xs font-semibold tracking-widest text-gold uppercase mb-1">Members</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-luxury-text">Clients</h1>
+          <div className="mt-2 h-px w-12 bg-gold/40" />
         </div>
         <Link
           href="/clients/new"
-          className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
+          className="px-5 py-2.5 bg-gold text-luxury-black text-sm font-semibold rounded-lg hover:bg-gold-light transition-colors text-center"
         >
           + Register New Client
         </Link>
       </div>
 
       {clients.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden relative">
+        <div className="bg-luxury-surface border border-luxury-border rounded-xl overflow-hidden relative">
           {loading && (
-            <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10 rounded-xl" aria-busy="true">
+            <div className="absolute inset-0 bg-luxury-black/60 flex items-center justify-center z-10 rounded-xl">
               <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-10 h-10 text-fitura-blue animate-spin" aria-hidden />
-                <span className="text-sm text-gray-600">Searching...</span>
+                <Loader2 className="w-8 h-8 text-gold animate-spin" />
+                <span className="text-sm text-luxury-muted">Searching...</span>
               </div>
             </div>
           )}
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-luxury-card border-b border-luxury-border">
                 <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {/* ID */}
+                  <th className="px-4 py-3 text-left">
                     <div className="flex flex-col gap-2">
-                      <span>ID</span>
+                      <span className="text-xs font-semibold text-gold uppercase tracking-wider">ID</span>
                       <div className="relative">
-                        <input
-                          type="text"
-                          value={filterClientId}
-                          onChange={(e) => setFilterClientId(e.target.value)}
-                          placeholder="Filter..."
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
-                        />
+                        <input type="text" value={filterClientId} onChange={(e) => setFilterClientId(e.target.value)}
+                          placeholder="Filter..." className={filterInputCls} />
                         {filterClientId && (
-                          <button
-                            type="button"
-                            onClick={() => { setFilterClientId(''); setFilterClientIdDebounced(''); setPage(1); }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            title="Clear filter"
-                          >
+                          <button type="button" onClick={() => { setFilterClientId(''); setFilterClientIdDebounced(''); setPage(1) }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 text-luxury-subtle hover:text-gold">
                             <X className="w-3 h-3" />
                           </button>
                         )}
                       </div>
                     </div>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {/* Image */}
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gold uppercase tracking-wider">Photo</th>
+                  {/* Name */}
+                  <th className="px-4 py-3 text-left">
                     <div className="flex flex-col gap-2">
-                      <span>Name</span>
+                      <span className="text-xs font-semibold text-gold uppercase tracking-wider">Name</span>
                       <div className="relative">
-                        <input
-                          type="text"
-                          value={filterName}
-                          onChange={(e) => setFilterName(e.target.value)}
-                          placeholder="Filter..."
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
-                        />
+                        <input type="text" value={filterName} onChange={(e) => setFilterName(e.target.value)}
+                          placeholder="Filter..." className={filterInputCls} />
                         {filterName && (
-                          <button
-                            type="button"
-                            onClick={() => { setFilterName(''); setFilterNameDebounced(''); setPage(1); }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            title="Clear filter"
-                          >
+                          <button type="button" onClick={() => { setFilterName(''); setFilterNameDebounced(''); setPage(1) }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 text-luxury-subtle hover:text-gold">
                             <X className="w-3 h-3" />
                           </button>
                         )}
                       </div>
                     </div>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                  {/* Phone */}
+                  <th className="px-4 py-3 text-left hidden sm:table-cell">
                     <div className="flex flex-col gap-2">
-                      <span>Phone</span>
+                      <span className="text-xs font-semibold text-gold uppercase tracking-wider">Phone</span>
                       <div className="relative">
-                        <input
-                          type="text"
-                          value={filterPhone}
-                          onChange={(e) => setFilterPhone(e.target.value)}
-                          placeholder="Filter..."
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
-                        />
+                        <input type="text" value={filterPhone} onChange={(e) => setFilterPhone(e.target.value)}
+                          placeholder="Filter..." className={filterInputCls} />
                         {filterPhone && (
-                          <button
-                            type="button"
-                            onClick={() => { setFilterPhone(''); setFilterPhoneDebounced(''); setPage(1); }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            title="Clear filter"
-                          >
+                          <button type="button" onClick={() => { setFilterPhone(''); setFilterPhoneDebounced(''); setPage(1) }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 text-luxury-subtle hover:text-gold">
                             <X className="w-3 h-3" />
                           </button>
                         )}
                       </div>
                     </div>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Expiry Date</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Membership</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Registered</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gold uppercase tracking-wider hidden md:table-cell">Expiry</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gold uppercase tracking-wider">Paid</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gold uppercase tracking-wider hidden lg:table-cell">Membership</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gold uppercase tracking-wider hidden lg:table-cell">Registered</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gold uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-luxury-border">
                 {clients.map((client) => (
-                  <tr key={client.clientId} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.clientId}</td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                  <tr key={client.clientId} className="hover:bg-luxury-card/50 transition-colors">
+                    <td className="px-4 py-4 text-sm font-medium text-luxury-muted">{client.clientId}</td>
+                    <td className="px-4 py-4">
                       <div className="relative">
                         {client.photoUrl ? (
                           <img
                             src={client.photoUrl}
                             alt={`${client.firstName} ${client.lastName}`}
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => setSelectedImage({
-                              url: client.photoUrl!,
-                              name: `${client.firstName} ${client.lastName}`
-                            })}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-gold/30 cursor-pointer hover:border-gold transition-colors"
+                            onClick={() => setSelectedImage({ url: client.photoUrl!, name: `${client.firstName} ${client.lastName}` })}
                             onError={(e) => {
-                              // Hide image and show fallback on error
                               const target = e.target as HTMLImageElement
                               target.style.display = 'none'
-                              const parent = target.parentElement
-                              if (parent) {
-                                const fallback = parent.querySelector('.avatar-fallback') as HTMLElement
-                                if (fallback) fallback.style.display = 'flex'
-                              }
+                              const fallback = target.parentElement?.querySelector('.avatar-fallback') as HTMLElement
+                              if (fallback) fallback.style.display = 'flex'
                             }}
                           />
                         ) : null}
-                        <div
-                          className={`avatar-fallback w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-fitura-blue/10 flex items-center justify-center ${client.photoUrl ? 'hidden' : ''}`}
-                        >
-                          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-fitura-blue" />
+                        <div className={`avatar-fallback w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center ${client.photoUrl ? 'hidden' : ''}`}>
+                          <Users className="w-5 h-5 text-gold/60" />
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4">
-                      <Link
-                        href={`/clients/${client.clientId}`}
-                        className="text-sm font-semibold text-gray-900 hover:text-fitura-blue transition-colors cursor-pointer block"
-                      >
+                    <td className="px-4 py-4">
+                      <Link href={`/clients/${client.clientId}`}
+                        className="text-sm font-semibold text-luxury-text hover:text-gold transition-colors block">
                         {client.firstName} {client.lastName}
                       </Link>
-                      <div className="text-xs text-gray-500">{client.email}</div>
-                      <div className="text-xs text-gray-500">{client.phone}</div>
-                      <div className="text-xs text-gray-500 md:hidden mt-1">
-                        Expiry: {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
+                      <div className="text-xs text-luxury-muted">{client.email}</div>
+                      <div className="text-xs text-luxury-subtle md:hidden mt-0.5">
+                        Exp: {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
                       </div>
-                      <div className="text-xs text-gray-500 lg:hidden md:block mt-1">
+                      <div className="text-xs text-luxury-subtle lg:hidden md:block mt-0.5">
                         {client.membershipName || 'N/A'}
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+                    <td className="px-4 py-4 text-sm text-luxury-muted hidden sm:table-cell">
                       {client.phone || '—'}
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                    <td className="px-4 py-4 text-sm text-luxury-muted hidden md:table-cell">
                       {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-4 py-4 text-sm">
                       {(() => {
-                        const membershipFee = client.membershipFee || 0
-                        const discount = client.discount || 0
-                        const finalAmount = membershipFee - discount
-                        const paidAmount = client.paidAmount || 0
-                        const isLessThanFinal = paidAmount < finalAmount && finalAmount > 0
-                        
+                        const fee = client.membershipFee || 0
+                        const disc = client.discount || 0
+                        const final = fee - disc
+                        const paid = client.paidAmount || 0
+                        const isLow = paid < final && final > 0
                         return (
-                          <span className={isLessThanFinal ? 'text-red-600 font-semibold' : 'text-gray-500'}>
+                          <span className={isLow ? 'text-red-400 font-semibold' : 'text-luxury-muted'}>
                             {client.paidAmount !== undefined ? `₹${client.paidAmount.toFixed(2)}` : 'N/A'}
                           </span>
                         )
                       })()}
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-fitura-purple-100 text-fitura-purple-800">
+                    <td className="px-4 py-4 hidden lg:table-cell">
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-gold/10 text-gold border border-gold/20">
                         {client.membershipName || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
+                    <td className="px-4 py-4 text-sm text-luxury-muted hidden lg:table-cell">
                       {new Date(client.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex items-center gap-2 sm:gap-3">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
                         {isPaidClient(client) && (
-                          <button
-                            onClick={() => handleDownloadReceipt(client)}
-                            className="text-green-600 hover:text-green-800 transition-colors p-1 rounded hover:bg-green-50"
-                            title="Download Receipt"
-                          >
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <button onClick={() => handleDownloadReceipt(client)} title="Download Receipt"
+                            className="p-1.5 rounded-lg text-luxury-muted hover:text-green-400 hover:bg-green-400/10 transition-colors">
+                            <FileText className="w-4 h-4" />
                           </button>
                         )}
-                        <button
-                          onClick={() => setRenewClient(client)}
-                          className="text-amber-600 hover:text-amber-800 transition-colors p-1 rounded hover:bg-amber-50"
-                          title="Renew"
-                        >
-                          <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <button onClick={() => setRenewClient(client)} title="Renew"
+                          className="p-1.5 rounded-lg text-luxury-muted hover:text-gold hover:bg-gold/10 transition-colors">
+                          <RefreshCw className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleEdit(client.clientId)}
-                          className="text-fitura-blue hover:text-fitura-magenta transition-colors p-1 rounded hover:bg-fitura-blue/10"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <button onClick={() => handleEdit(client.clientId)} title="Edit"
+                          className="p-1.5 rounded-lg text-luxury-muted hover:text-blue-400 hover:bg-blue-400/10 transition-colors">
+                          <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(client.clientId)}
-                          className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <button onClick={() => handleDelete(client.clientId)} title="Delete"
+                          className="p-1.5 rounded-lg text-luxury-muted hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -531,79 +469,88 @@ export default function ClientsPage() {
           {paginationBar}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="p-12 text-center">
-            <div className="mb-4 flex justify-center opacity-50">
-              <Users className="w-24 h-24 text-gray-400" />
-            </div>
-            <h3 className="text-2xl font-semibold mb-2">
-              {filterClientId || filterName || filterPhone ? 'No clients found' : 'No clients yet'}
-            </h3>
-            <p className="text-gray-500 mb-6">
-              {filterClientId || filterName || filterPhone
-                ? 'Try adjusting your filters or clear them to see all clients'
-                : 'Get started by registering your first client'}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {(filterClientId || filterName || filterPhone) && (
-                <button
-                  type="button"
-                  onClick={() => { setFilterClientId(''); setFilterName(''); setFilterPhone(''); setFilterClientIdDebounced(''); setFilterNameDebounced(''); setFilterPhoneDebounced(''); setPage(1); }}
-                  className="text-fitura-blue hover:text-fitura-dark font-medium"
-                >
-                  Clear filters
-                </button>
-              )}
-              <Link
-                href="/clients/new"
-                className="bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors inline-block"
-              >
-                Register New Client
-              </Link>
-            </div>
+        <div className="relative bg-luxury-surface border border-luxury-border rounded-2xl overflow-hidden">
+          {/* Top gold line */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+
+          {/* Decorative radial glow */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-96 h-96 rounded-full"
+              style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 65%)' }} />
           </div>
-          {paginationBar}
+
+          {/* Decorative spinning ring */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none animate-spin-slow">
+            <svg width="340" height="340" viewBox="0 0 340 340" fill="none">
+              <circle cx="170" cy="170" r="165" stroke="#D4AF37" strokeWidth="1" strokeDasharray="8 14" />
+              <circle cx="170" cy="170" r="120" stroke="#D4AF37" strokeWidth="0.5" strokeDasharray="4 10" />
+            </svg>
+          </div>
+
+          <div className="relative z-10 py-20 px-8 text-center">
+            {/* Icon cluster */}
+            <div className="flex justify-center mb-8">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-gold/10 border border-gold/25 flex items-center justify-center">
+                  <Users className="w-9 h-9 text-gold/70" />
+                </div>
+                {/* Corner dots */}
+                <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-gold/30 border border-gold/50" />
+                <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-gold/20" />
+              </div>
+            </div>
+
+            {filterClientId || filterName || filterPhone ? (
+              <>
+                <p className="text-xs font-semibold tracking-widest text-gold uppercase mb-2">No Results</p>
+                <h3 className="text-2xl font-black text-luxury-text mb-3">No clients found</h3>
+                <p className="text-luxury-muted text-sm max-w-sm mx-auto mb-8">
+                  No clients match your current filters. Try adjusting your search or clear filters to see all members.
+                </p>
+                <button type="button"
+                  onClick={() => { setFilterClientId(''); setFilterName(''); setFilterPhone(''); setFilterClientIdDebounced(''); setFilterNameDebounced(''); setFilterPhoneDebounced(''); setPage(1) }}
+                  className="px-6 py-2.5 border border-gold/40 text-gold text-sm font-semibold rounded-xl hover:bg-gold/10 transition-all">
+                  Clear Filters
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-semibold tracking-widest text-gold uppercase mb-2">Get Started</p>
+                <h3 className="text-2xl font-black text-luxury-text mb-3">No members yet</h3>
+                <p className="text-luxury-muted text-sm max-w-sm mx-auto mb-8">
+                  Register your first gym member to start tracking memberships, attendance, and payments.
+                </p>
+                <Link href="/clients/new"
+                  className="inline-flex items-center gap-2 px-7 py-3 bg-gold text-luxury-black text-sm font-bold rounded-xl hover:bg-gold-light transition-all hover:shadow-[0_0_24px_rgba(212,175,55,0.35)]">
+                  + Register First Client
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {/* Renew Membership Modal */}
       {renewClient && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-          onClick={() => !renewing && setRenewClient(null)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => !renewing && setRenewClient(null)}>
+          <div className="bg-luxury-surface border border-luxury-border rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">Renew Membership</h2>
-                <button
-                  type="button"
-                  onClick={() => !renewing && setRenewClient(null)}
-                  className="p-2 rounded-lg hover:bg-gray-100"
-                  aria-label="Close"
-                >
+              <div className="flex justify-between items-center mb-1">
+                <h2 className="text-lg font-bold text-luxury-text">Renew Membership</h2>
+                <button type="button" onClick={() => !renewing && setRenewClient(null)}
+                  className="p-1.5 rounded-lg hover:bg-luxury-elevated text-luxury-muted hover:text-luxury-text transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-gray-600 mb-6">
-                {renewClient.firstName} {renewClient.lastName} (ID: {renewClient.clientId})
+              <p className="text-sm text-luxury-muted mb-6">
+                {renewClient.firstName} {renewClient.lastName} <span className="text-luxury-subtle">· ID {renewClient.clientId}</span>
               </p>
               <form onSubmit={handleRenewSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="renew-membershipType" className="block text-sm font-medium text-gray-700 mb-1">
-                    Subscription <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="renew-membershipType"
-                    name="membershipType"
-                    value={renewForm.membershipType}
-                    onChange={handleRenewFormChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                  >
+                  <label className={modalLabelCls}>Subscription <span className="text-red-400">*</span></label>
+                  <select name="membershipType" value={renewForm.membershipType} onChange={handleRenewFormChange} required className={modalInputCls}>
                     <option value="">Select subscription</option>
                     {memberships.map((m) => (
                       <option key={m.membershipId} value={m.membershipId}>
@@ -614,106 +561,36 @@ export default function ClientsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="renew-joiningDate" className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Date <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      id="renew-joiningDate"
-                      name="joiningDate"
-                      value={renewForm.joiningDate}
-                      onChange={handleRenewFormChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    />
+                    <label className={modalLabelCls}>Start Date <span className="text-red-400">*</span></label>
+                    <input type="date" name="joiningDate" value={renewForm.joiningDate} onChange={handleRenewFormChange} required className={modalInputCls} />
                   </div>
                   <div>
-                    <label htmlFor="renew-expiryDate" className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="date"
-                      id="renew-expiryDate"
-                      name="expiryDate"
-                      value={renewForm.expiryDate}
-                      onChange={handleRenewFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    />
+                    <label className={modalLabelCls}>Expiry Date</label>
+                    <input type="date" name="expiryDate" value={renewForm.expiryDate} onChange={handleRenewFormChange} className={modalInputCls} />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="renew-paymentDate" className="block text-sm font-medium text-gray-700 mb-1">
-                    Payment Date
-                  </label>
-                  <input
-                    type="date"
-                    id="renew-paymentDate"
-                    name="paymentDate"
-                    value={renewForm.paymentDate}
-                    onChange={handleRenewFormChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                  />
+                  <label className={modalLabelCls}>Payment Date</label>
+                  <input type="date" name="paymentDate" value={renewForm.paymentDate} onChange={handleRenewFormChange} className={modalInputCls} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="renew-membershipFee" className="block text-sm font-medium text-gray-700 mb-1">
-                      Membership Fee (₹)
-                    </label>
-                    <input
-                      type="number"
-                      id="renew-membershipFee"
-                      name="membershipFee"
-                      value={renewForm.membershipFee}
-                      onChange={handleRenewFormChange}
-                      min="0"
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    />
+                    <label className={modalLabelCls}>Membership Fee (₹)</label>
+                    <input type="number" name="membershipFee" value={renewForm.membershipFee} onChange={handleRenewFormChange} min="0" step="0.01" className={modalInputCls} />
                   </div>
                   <div>
-                    <label htmlFor="renew-discount" className="block text-sm font-medium text-gray-700 mb-1">
-                      Discount (₹)
-                    </label>
-                    <input
-                      type="number"
-                      id="renew-discount"
-                      name="discount"
-                      value={renewForm.discount}
-                      onChange={handleRenewFormChange}
-                      min="0"
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    />
+                    <label className={modalLabelCls}>Discount (₹)</label>
+                    <input type="number" name="discount" value={renewForm.discount} onChange={handleRenewFormChange} min="0" step="0.01" className={modalInputCls} />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="renew-paidAmount" className="block text-sm font-medium text-gray-700 mb-1">
-                    Paid Amount (₹)
-                  </label>
-                  <input
-                    type="number"
-                    id="renew-paidAmount"
-                    name="paidAmount"
-                    value={renewForm.paidAmount}
-                    onChange={handleRenewFormChange}
-                    min="0"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    placeholder="0.00"
-                  />
+                  <label className={modalLabelCls}>Paid Amount (₹)</label>
+                  <input type="number" name="paidAmount" value={renewForm.paidAmount} onChange={handleRenewFormChange} min="0" step="0.01" placeholder="0.00" className={modalInputCls} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="renew-paymentMode" className="block text-sm font-medium text-gray-700 mb-1">
-                      Payment Mode
-                    </label>
-                    <select
-                      id="renew-paymentMode"
-                      name="paymentMode"
-                      value={renewForm.paymentMode}
-                      onChange={handleRenewFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                    >
+                    <label className={modalLabelCls}>Payment Mode</label>
+                    <select name="paymentMode" value={renewForm.paymentMode} onChange={handleRenewFormChange} className={modalInputCls}>
                       <option value="">Select</option>
                       <option value="UPI">UPI</option>
                       <option value="Card">Card</option>
@@ -721,33 +598,17 @@ export default function ClientsPage() {
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="renew-transactionId" className="block text-sm font-medium text-gray-700 mb-1">
-                      Transaction ID
-                    </label>
-                    <input
-                      type="text"
-                      id="renew-transactionId"
-                      name="transactionId"
-                      value={renewForm.transactionId}
-                      onChange={handleRenewFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-blue focus:border-transparent"
-                      placeholder="Optional"
-                    />
+                    <label className={modalLabelCls}>Transaction ID</label>
+                    <input type="text" name="transactionId" value={renewForm.transactionId} onChange={handleRenewFormChange} placeholder="Optional" className={modalInputCls} />
                   </div>
                 </div>
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => !renewing && setRenewClient(null)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
-                  >
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => !renewing && setRenewClient(null)}
+                    className="flex-1 px-4 py-2.5 border border-luxury-border rounded-lg text-sm font-medium text-luxury-muted hover:border-luxury-elevated hover:text-luxury-text transition-colors">
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={renewing || !renewForm.membershipType}
-                    className="flex-1 px-4 py-2 bg-fitura-dark text-white rounded-lg font-medium hover:bg-fitura-blue disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <button type="submit" disabled={renewing || !renewForm.membershipType}
+                    className="flex-1 px-4 py-2.5 bg-gold text-luxury-black rounded-lg text-sm font-semibold hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                     {renewing ? 'Renewing…' : 'Renew'}
                   </button>
                 </div>
@@ -759,36 +620,18 @@ export default function ClientsPage() {
 
       {/* Image Popup Modal */}
       {selectedImage && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <div 
-            className="relative max-w-4xl max-h-[90vh] w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 transition-colors z-10"
-              aria-label="Close modal"
-            >
-              <X className="w-6 h-6" />
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedImage(null)}>
+          <div className="relative max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 bg-luxury-surface border border-luxury-border text-luxury-text rounded-full p-2 hover:border-gold/40 transition-colors z-10">
+              <X className="w-5 h-5" />
             </button>
-            
-            {/* Image */}
-            <img
-              src={selectedImage.url}
-              alt={selectedImage.name}
-              className="w-full h-auto rounded-lg shadow-2xl object-contain max-h-[90vh]"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-            
-            {/* Client Name */}
-            <div className="absolute bottom-4 left-4 right-4 bg-black/60 text-white px-4 py-2 rounded-lg">
-              <p className="text-lg font-semibold">{selectedImage.name}</p>
+            <img src={selectedImage.url} alt={selectedImage.name}
+              className="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[90vh]"
+              onError={(e) => { e.currentTarget.style.display = 'none' }} />
+            <div className="absolute bottom-4 left-4 right-4 bg-luxury-black/80 border border-gold/20 text-luxury-text px-4 py-2 rounded-lg">
+              <p className="text-sm font-semibold text-gold">{selectedImage.name}</p>
             </div>
           </div>
         </div>
@@ -796,4 +639,3 @@ export default function ClientsPage() {
     </div>
   )
 }
-

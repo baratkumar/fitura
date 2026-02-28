@@ -23,10 +23,10 @@ export default function PageLoader({ message = 'Loading...', className = '', siz
       aria-label={message}
     >
       <Loader2
-        className={`${sizeClasses[size]} text-fitura-blue animate-spin mb-4`}
+        className={`${sizeClasses[size]} text-gold animate-spin mb-4`}
         aria-hidden
       />
-      <p className="text-gray-600">{message}</p>
+      <p className="text-luxury-muted text-sm">{message}</p>
     </div>
   )
 }

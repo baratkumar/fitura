@@ -1,0 +1,112 @@
+TC_ID,Scenario,Test Description,Expected,Actual,Status
+TC-001,store – getAllItems,Returns an empty array when no items have been added,[],[],PASS
+TC-002,store – getAllItems,Returns all added items after 2 inserts,Array length 2,Array length 2,PASS
+TC-003,store – getAllItems,Returns items in insertion order,"items[0].name='First' and items[1].name='Second'","items[0].name='First' and items[1].name='Second'",PASS
+TC-004,store – getAllItems,Reflects deletions immediately after deleteItem call,Array length 0,Array length 0,PASS
+TC-005,store – addItem,Returns the newly created item with correct name/description/id,"name='Widget', description='A round widget', id>0","name='Widget', description='A round widget', id>0",PASS
+TC-006,store – addItem,Uses empty string as the default description when none given,description = '',description = '',PASS
+TC-007,store – addItem,Assigns a positive numeric ID to each new item,id is typeof number and id > 0,id is typeof number and id > 0,PASS
+TC-008,store – addItem,Assigns unique IDs to 3 successive items,Set of 3 IDs has size 3,Set of 3 IDs has size 3,PASS
+TC-009,store – addItem,Assigns strictly increasing IDs,second.id > first.id,second.id > first.id,PASS
+TC-010,store – addItem,Sets createdAt to a valid ISO timestamp between before and after invocation,createdAt >= before and <= after,createdAt >= before and <= after,PASS
+TC-011,store – addItem,Adds the item to the store (length becomes 1),getAllItems() length = 1,getAllItems() length = 1,PASS
+TC-012,store – addItem,Adds multiple items to the store (length becomes 3),getAllItems() length = 3,getAllItems() length = 3,PASS
+TC-013,store – deleteItem,Returns true when item exists and is removed,true,true,PASS
+TC-014,store – deleteItem,Removes the item from the store (length becomes 0),getAllItems() length = 0,getAllItems() length = 0,PASS
+TC-015,store – deleteItem,Returns false for a non-existent ID (99999),false,false,PASS
+TC-016,store – deleteItem,Returns false when called a second time on the same ID,false,false,PASS
+TC-017,store – deleteItem,Only removes the targeted item leaving others intact,"remaining length = 1, remaining[0].id = keep.id","remaining length = 1, remaining[0].id = keep.id",PASS
+TC-018,store – deleteItem,Preserves the order of remaining items after middle deletion,"remaining IDs = [a.id, c.id]","remaining IDs = [a.id, c.id]",PASS
+TC-019,store – getItem,Returns the item when it exists with matching id/name/description,found is defined and matches all fields,found is defined and matches all fields,PASS
+TC-020,store – getItem,Returns undefined for a non-existent ID (99999),undefined,undefined,PASS
+TC-021,store – getItem,Returns undefined after the item has been deleted,undefined,undefined,PASS
+TC-022,store – getItem,Returns the correct item by ID when multiple items exist,"getItem(a.id).name='Alpha', getItem(b.id).name='Beta'","getItem(a.id).name='Alpha', getItem(b.id).name='Beta'",PASS
+TC-023,store – getItem,Returns an item with all expected properties (id / name / description / createdAt),"Has properties: id, name, description, createdAt","Has properties: id, name, description, createdAt",PASS
+TC-024,toDurationDays,Returns 30 days for input '1' (MONTHS_TO_DAYS lookup),30,30,PASS
+TC-025,toDurationDays,Returns 60 days for input '2',60,60,PASS
+TC-026,toDurationDays,Returns 90 days for input '3',90,90,PASS
+TC-027,toDurationDays,Returns 180 days for input '6',180,180,PASS
+TC-028,toDurationDays,Returns 365 days for input '12' (exact lookup),365,365,PASS
+TC-029,toDurationDays,Returns 395 days for input '13',395,395,PASS
+TC-030,toDurationDays,Returns 420 days for input '14',420,420,PASS
+TC-031,toDurationDays,Returns 450 days for input '15',450,450,PASS
+TC-032,toDurationDays,Falls back to n*30 for '4' (not in lookup table),120,120,PASS
+TC-033,toDurationDays,Falls back to n*30 for '7' (not in lookup table),210,210,PASS
+TC-034,toDurationDays,Falls back to n*30 for '9' (not in lookup table),270,270,PASS
+TC-035,toDurationDays,Returns 30 for empty string '' (NaN fallback),30,30,PASS
+TC-036,toDurationDays,Returns 30 for purely alphabetic string 'abc' (NaN fallback),30,30,PASS
+TC-037,toDurationDays,"Strips non-digit chars and parses the number (""5 Months"" → 150)",150,150,PASS
+TC-038,toDurationDays,"Strips non-digit chars for a lookup value (""12 Months"" → 365)",365,365,PASS
+TC-039,parseCsvToRows – edge cases,Returns [] for an empty string,[],[],PASS
+TC-040,parseCsvToRows – edge cases,Returns [] for a string containing only whitespace,[],[],PASS
+TC-041,parseCsvToRows – edge cases,Returns [] when only the header row is present,[],[],PASS
+TC-042,parseCsvToRows – edge cases,Returns [] for a header followed by a blank line,[],[],PASS
+TC-043,parseCsvToRows – basic parsing,Parses a single data row into exactly one CsvRow,rows.length = 1,rows.length = 1,PASS
+TC-044,parseCsvToRows – basic parsing,Parses two data rows into exactly two CsvRows,rows.length = 2,rows.length = 2,PASS
+TC-045,parseCsvToRows – basic parsing,Maps firstName correctly from column 1,rows[0].firstName = 'John',rows[0].firstName = 'John',PASS
+TC-046,parseCsvToRows – basic parsing,Maps lastName correctly from column 2,rows[0].lastName = 'Doe',rows[0].lastName = 'Doe',PASS
+TC-047,parseCsvToRows – basic parsing,Maps gender correctly from column 3,rows[0].gender = 'Male',rows[0].gender = 'Male',PASS
+TC-048,parseCsvToRows – basic parsing,Maps mobile correctly from column 13,rows[0].mobile = '9876543210',rows[0].mobile = '9876543210',PASS
+TC-049,parseCsvToRows – basic parsing,Maps subscriptionAmount as a number from column 6,rows[0].subscriptionAmount = 1000,rows[0].subscriptionAmount = 1000,PASS
+TC-050,parseCsvToRows – basic parsing,Maps paidAmount as a number from column 7,rows[0].paidAmount = 1000,rows[0].paidAmount = 1000,PASS
+TC-051,parseCsvToRows – basic parsing,Maps email correctly from column 17,rows[0].email = 'john@example.com',rows[0].email = 'john@example.com',PASS
+TC-052,parseCsvToRows – basic parsing,Maps address correctly from column 20,rows[0].address = 'Mumbai',rows[0].address = 'Mumbai',PASS
+TC-053,parseCsvToRows – basic parsing,Maps userId correctly from column 0,rows[0].userId = '1',rows[0].userId = '1',PASS
+TC-054,parseCsvToRows – fallback values,"Defaults firstName to ""Unknown"" when cell is empty",rows[0].firstName = 'Unknown',rows[0].firstName = 'Unknown',PASS
+TC-055,parseCsvToRows – fallback values,"Defaults lastName to "".""  when cell is empty",rows[0].lastName = '.',rows[0].lastName = '.',PASS
+TC-056,parseCsvToRows – fallback values,"Defaults mobile to ""0000000000"" when cell is empty",rows[0].mobile = '0000000000',rows[0].mobile = '0000000000',PASS
+TC-057,parseCsvToRows – fallback values,"Defaults address to ""N/A"" when cell is empty",rows[0].address = 'N/A',rows[0].address = 'N/A',PASS
+TC-058,parseCsvToRows – fallback values,Defaults subscriptionAmount to 0 for a non-numeric cell value,rows[0].subscriptionAmount = 0,rows[0].subscriptionAmount = 0,PASS
+TC-059,parseCsvToRows – fallback values,Defaults paidAmount to 0 for a non-numeric cell value,rows[0].paidAmount = 0,rows[0].paidAmount = 0,PASS
+TC-060,parseCsvToRows – fallback values,Defaults subscriptionAmount to 0 for an empty cell,rows[0].subscriptionAmount = 0,rows[0].subscriptionAmount = 0,PASS
+TC-061,parseCsvToRows – quoted fields,"Handles an address field that contains commas (""123, Main Street, Mumbai"")","rows[0].address = '123, Main Street, Mumbai'","rows[0].address = '123, Main Street, Mumbai'",PASS
+TC-062,parseCsvToRows – quoted fields,Parses multiple quoted comma-containing fields in the same row,"gymGoal = 'Weight Loss, Strength' and address = 'Apt 5, Block B'","gymGoal = 'Weight Loss, Strength' and address = 'Apt 5, Block B'",PASS
+TC-063,parseCsvToRows – mobile normalisation,Strips internal spaces from mobile numbers ('987 654 3210' → '9876543210'),rows[0].mobile = '9876543210',rows[0].mobile = '9876543210',PASS
+TC-064,parseCsvToRows – mobile normalisation,Trims leading/trailing whitespace from mobile number,rows[0].mobile = '9876543210',rows[0].mobile = '9876543210',PASS
+TC-065,parseCsvToRows – numeric amount parsing,Parses decimal subscription and paid amounts correctly (2500.50 / 2000.75),"subscriptionAmount ≈ 2500.5, paidAmount ≈ 2000.75","subscriptionAmount ≈ 2500.5, paidAmount ≈ 2000.75",PASS
+TC-066,parseCsvToRows – line endings,Handles Windows-style CRLF (\r\n) line endings,rows.length = 1 and firstName = 'John',rows.length = 1 and firstName = 'John',PASS
+TC-067,parseCsvToRows – line endings,Handles Unix-style LF (\n) line endings,rows.length = 1 and firstName = 'John',rows.length = 1 and firstName = 'John',PASS
+TC-068,parseCsvToRows – row ordering,Preserves order of rows as they appear in the CSV (Alice / Bob / Carol),"rows[0]='Alice', rows[1]='Bob', rows[2]='Carol'","rows[0]='Alice', rows[1]='Bob', rows[2]='Carol'",PASS
+TC-069,generateReceiptHTML – HTML structure,Returns a string,typeof result = 'string',typeof result = 'string',PASS
+TC-070,generateReceiptHTML – HTML structure,Begins with a DOCTYPE declaration,HTML contains '<!DOCTYPE html>',HTML contains '<!DOCTYPE html>',PASS
+TC-071,generateReceiptHTML – HTML structure,Contains opening and closing <html> tags,"HTML contains '<html>' and '</html>'","HTML contains '<html>' and '</html>'",PASS
+TC-072,generateReceiptHTML – HTML structure,Contains opening and closing <body> tags,"HTML contains '<body>' and '</body>'","HTML contains '<body>' and '</body>'",PASS
+TC-073,generateReceiptHTML – HTML structure,Contains a <head> section with a <title>,"HTML contains '<head>' and '<title>'","HTML contains '<head>' and '<title>'",PASS
+TC-074,generateReceiptHTML – HTML structure,Includes the client full name in the page title,HTML contains 'Jane Smith',HTML contains 'Jane Smith',PASS
+TC-075,generateReceiptHTML – HTML structure,Includes the auto-print script,HTML contains 'window.print()',HTML contains 'window.print()',PASS
+TC-076,generateReceiptHTML – branding,"Shows fallback Fitura heading when no logo URL is provided","HTML contains '<h1>Fitura</h1>'","HTML contains '<h1>Fitura</h1>'",PASS
+TC-077,generateReceiptHTML – branding,Renders an <img> tag with the logo URL when one is provided,"HTML contains logo URL and '<img'","HTML contains logo URL and '<img'",PASS
+TC-078,generateReceiptHTML – branding,"Omits the fallback <h1>Fitura</h1> when a logo URL is provided","HTML does not contain '<h1>Fitura</h1>'","HTML does not contain '<h1>Fitura</h1>'",PASS
+TC-079,generateReceiptHTML – client details,Shows receipt number derived from clientId (#42),HTML contains '#42',HTML contains '#42',PASS
+TC-080,generateReceiptHTML – client details,Includes the client first name,HTML contains 'Jane',HTML contains 'Jane',PASS
+TC-081,generateReceiptHTML – client details,Includes the client last name,HTML contains 'Smith',HTML contains 'Smith',PASS
+TC-082,generateReceiptHTML – client details,Includes the phone number,HTML contains '9876543210',HTML contains '9876543210',PASS
+TC-083,generateReceiptHTML – client details,Includes the email address when provided,HTML contains 'jane@example.com',HTML contains 'jane@example.com',PASS
+TC-084,generateReceiptHTML – client details,Omits the Email row when email is not provided,HTML does not contain Email label,HTML does not contain Email label,PASS
+TC-085,generateReceiptHTML – client details,Includes the address when provided,"HTML contains '5th Avenue, NYC'","HTML contains '5th Avenue, NYC'",PASS
+TC-086,generateReceiptHTML – client details,Omits the Address row when address is not provided,HTML does not contain Address label,HTML does not contain Address label,PASS
+TC-087,generateReceiptHTML – membership section,Displays the membership name when provided,HTML contains 'Gold Annual',HTML contains 'Gold Annual',PASS
+TC-088,generateReceiptHTML – membership section,"Shows ""N/A"" for plan when membershipName is not provided",HTML contains 'N/A',HTML contains 'N/A',PASS
+TC-089,generateReceiptHTML – membership section,Formats joiningDate using en-IN locale (2024-03-15),"HTML contains 'Mar' and '2024'","HTML contains 'Mar' and '2024'",PASS
+TC-090,generateReceiptHTML – membership section,Formats expiryDate using en-IN locale (2025-12-31),"HTML contains 'Dec' and '2025'","HTML contains 'Dec' and '2025'",PASS
+TC-091,generateReceiptHTML – membership section,Shows N/A for joiningDate when not provided,HTML contains 'N/A',HTML contains 'N/A',PASS
+TC-092,generateReceiptHTML – membership section,Shows N/A for expiryDate when not provided,HTML contains 'N/A',HTML contains 'N/A',PASS
+TC-093,generateReceiptHTML – payment details,Formats the membership fee as ₹1500.00,HTML contains '₹1500.00',HTML contains '₹1500.00',PASS
+TC-094,generateReceiptHTML – payment details,Defaults membership fee to ₹0.00 when not provided,HTML contains '₹0.00',HTML contains '₹0.00',PASS
+TC-095,generateReceiptHTML – payment details,Shows the discount row with amount when discount > 0 (discount=500),"HTML contains 'Discount' and '₹500.00'","HTML contains 'Discount' and '₹500.00'",PASS
+TC-096,generateReceiptHTML – payment details,Hides the discount row when discount = 0,HTML does not contain 'Discount',HTML does not contain 'Discount',PASS
+TC-097,generateReceiptHTML – payment details,Hides the discount row when discount is not provided,HTML does not contain 'Discount',HTML does not contain 'Discount',PASS
+TC-098,generateReceiptHTML – payment details,Computes Amount Payable as membershipFee minus discount (2000−500=1500),HTML contains '₹1500.00',HTML contains '₹1500.00',PASS
+TC-099,generateReceiptHTML – payment details,Clamps Amount Payable to ₹0.00 when discount exceeds fee (500−1000=0),HTML contains '₹0.00',HTML contains '₹0.00',PASS
+TC-100,generateReceiptHTML – payment details,Formats paidAmount as ₹4200.00,HTML contains '₹4200.00',HTML contains '₹4200.00',PASS
+TC-101,generateReceiptHTML – payment details,Defaults paidAmount to ₹0.00 when not provided,HTML contains '₹0.00',HTML contains '₹0.00',PASS
+TC-102,generateReceiptHTML – payment details,Includes the payment date formatted with en-IN locale (2024-06-01),"HTML contains 'Jun' and '2024'","HTML contains 'Jun' and '2024'",PASS
+TC-103,generateReceiptHTML – payment details,Includes the payment mode when provided,HTML contains 'UPI',HTML contains 'UPI',PASS
+TC-104,generateReceiptHTML – payment details,Omits the Payment Mode row when paymentMode is not provided,HTML does not contain Payment Mode label,HTML does not contain Payment Mode label,PASS
+TC-105,generateReceiptHTML – payment details,Includes the transaction ID when provided,HTML contains 'TXN987654',HTML contains 'TXN987654',PASS
+TC-106,generateReceiptHTML – payment details,Omits the Transaction ID row when transactionId is not provided,HTML does not contain Transaction ID label,HTML does not contain Transaction ID label,PASS
+TC-107,generateReceiptHTML – footer,Contains a Thank you message in the footer,HTML contains 'Thank you',HTML contains 'Thank you',PASS
+TC-108,generateReceiptHTML – footer,Includes a Generated on date in the footer,HTML contains 'Generated on',HTML contains 'Generated on',PASS
+TC-109,generateReceiptHTML – currency formatting,Formats integer amounts with two decimal places (1000 → ₹1000.00),HTML contains '₹1000.00',HTML contains '₹1000.00',PASS
+TC-110,generateReceiptHTML – currency formatting,Formats decimal amounts correctly (999.99 → ₹999.99),HTML contains '₹999.99',HTML contains '₹999.99',PASS
+TC-111,generateReceiptHTML – currency formatting,Rounds to two decimal places (100.125 → ₹100.13),HTML contains '₹100.13',HTML contains '₹100.13',PASS

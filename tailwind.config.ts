@@ -12,10 +12,27 @@ const config: Config = {
         sans: ['var(--font-montserrat)', 'sans-serif'],
       },
       colors: {
+        'gold': {
+          DEFAULT: '#D4AF37',
+          light: '#F0C040',
+          dark: '#B8962E',
+          muted: '#8B7320',
+        },
+        'luxury': {
+          black: '#0D0D0D',
+          dark: '#111111',
+          surface: '#1A1A1A',
+          card: '#1E1E1E',
+          elevated: '#242424',
+          border: '#2A2A2A',
+          text: '#F5F5F5',
+          muted: '#9A9A9A',
+          subtle: '#555555',
+        },
         'fitura': {
-          'dark': '#1a1b3d', // Dark purplish-blue/indigo background
+          'dark': '#1a1b3d',
           'blue': {
-            DEFAULT: '#2563eb', // Deep rich blue (primary)
+            DEFAULT: '#2563eb',
             50: '#eff6ff',
             100: '#dbeafe',
             200: '#bfdbfe',
@@ -41,7 +58,7 @@ const config: Config = {
             900: '#581c87',
           },
           'magenta': {
-            DEFAULT: '#ec4899', // Vibrant magenta/hot pink (accent)
+            DEFAULT: '#ec4899',
             50: '#fdf2f8',
             100: '#fce7f3',
             200: '#fbcfe8',
@@ -57,8 +74,8 @@ const config: Config = {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic':
-          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'gradient-gold': 'linear-gradient(135deg, #D4AF37 0%, #F0C040 50%, #B8962E 100%)',
         'gradient-fitura': 'linear-gradient(135deg, #2563eb 0%, #9333ea 50%, #ec4899 100%)',
       },
     },
@@ -66,4 +83,3 @@ const config: Config = {
   plugins: [],
 }
 export default config
-

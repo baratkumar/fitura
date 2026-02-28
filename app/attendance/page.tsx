@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Clock, CheckCircle2, AlertCircle, X } from 'lucide-react'
+import { Clock, CheckCircle2, AlertCircle, X, ArrowUpRight, LogIn, LogOut } from 'lucide-react'
 
 interface ClientInfo {
   clientId: string
@@ -21,143 +20,72 @@ interface SuccessData {
 }
 
 export default function AttendancePage() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [successData, setSuccessData] = useState<SuccessData | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState('')
   const [countdown, setCountdown] = useState(5)
-  const [formData, setFormData] = useState({
-    clientId: '',
-    date: '',
-    time: '',
-  })
+  const [formData, setFormData] = useState({ clientId: '', date: '', time: '' })
 
-  // Pre-populate date and time with current values
   useEffect(() => {
     const now = new Date()
-    const currentDate = now.toISOString().split('T')[0]
-    const currentTime = now.toTimeString().split(' ')[0].slice(0, 5) // HH:MM format
-    
     setFormData(prev => ({
       ...prev,
-      date: currentDate,
-      time: currentTime,
+      date: now.toISOString().split('T')[0],
+      time: now.toTimeString().split(' ')[0].slice(0, 5),
     }))
   }, [])
 
-  // Auto-close modal after 5 seconds with countdown
   useEffect(() => {
     if (showModal && successData) {
-      setCountdown(5) // Reset countdown when modal opens
-      
-      const countdownInterval = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdownInterval)
-            setShowModal(false)
-            setSuccessData(null)
-            return 0
-          }
+      setCountdown(5)
+      const interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) { clearInterval(interval); setShowModal(false); setSuccessData(null); return 0 }
           return prev - 1
         })
-      }, 1000) // Update every second
-
-      return () => clearInterval(countdownInterval)
+      }, 1000)
+      return () => clearInterval(interval)
     }
   }, [showModal, successData])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }))
-    // Clear error and success messages when user types
+    setFormData(prev => ({ ...prev, [name]: value }))
     if (error) setError('')
-    if (successData) {
-      setSuccessData(null)
-      setShowModal(false)
-    }
+    if (successData) { setSuccessData(null); setShowModal(false) }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
-    setSuccessData(null)
-    setShowModal(false)
-
+    setLoading(true); setError(''); setSuccessData(null); setShowModal(false)
     try {
-      const response = await fetch('/api/attendance', {
+      const res = await fetch('/api/attendance', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clientId: formData.clientId,
-          attendanceDate: formData.date,
-          attendanceTime: formData.time,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: formData.clientId, attendanceDate: formData.date, attendanceTime: formData.time }),
       })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        // Fetch client info to show in modal
-        const clientResponse = await fetch(`/api/clients/${formData.clientId}`)
+      const data = await res.json()
+      if (res.ok) {
+        const clientRes = await fetch(`/api/clients/${formData.clientId}`)
         let client: ClientInfo | null = null
-        
-        if (clientResponse.ok) {
-          const clientData = await clientResponse.json()
-          client = {
-            clientId: clientData.clientId.toString(),
-            firstName: clientData.firstName,
-            lastName: clientData.lastName,
-            photoUrl: clientData.photoUrl,
-          }
+        if (clientRes.ok) {
+          const cd = await clientRes.json()
+          client = { clientId: cd.clientId.toString(), firstName: cd.firstName, lastName: cd.lastName, photoUrl: cd.photoUrl }
         }
-        
-        // Set success data with attendance and client info
         setSuccessData({
           status: data.status || 'IN',
-          inTime: data.inTime,
-          outTime: data.outTime,
-          duration: data.duration,
-          client: client || {
-            clientId: formData.clientId,
-            firstName: '',
-            lastName: 'Client',
-            photoUrl: undefined,
-          },
+          inTime: data.inTime, outTime: data.outTime, duration: data.duration,
+          client: client || { clientId: formData.clientId, firstName: '', lastName: 'Client', photoUrl: undefined },
         })
         setShowModal(true)
-        
-        // Reset form and refresh date/time to current values
         const now = new Date()
-        const currentDate = now.toISOString().split('T')[0]
-        const currentTime = now.toTimeString().split(' ')[0].slice(0, 5)
-        
-        setFormData({
-          clientId: '',
-          date: currentDate,
-          time: currentTime,
-        })
+        setFormData({ clientId: '', date: now.toISOString().split('T')[0], time: now.toTimeString().split(' ')[0].slice(0, 5) })
       } else {
-        // Show user-friendly error message
-        let errorMessage = data.error || 'Failed to record attendance'
-        
-        // Add hint if available
-        if (data.hint) {
-          errorMessage += ` ${data.hint}`
-        }
-        
-        // Special handling for client not found
-        if (response.status === 404 && data.clientId) {
-          errorMessage = `Client ID ${data.clientId} not found. Please verify the client ID exists in the system.`
-        }
-        
-        setError(errorMessage)
+        let msg = data.error || 'Failed to record attendance'
+        if (data.hint) msg += ` ${data.hint}`
+        if (res.status === 404 && data.clientId) msg = `Client ID ${data.clientId} not found. Please verify the client ID.`
+        setError(msg)
       }
     } catch (err) {
       console.error('Error recording attendance:', err)
@@ -167,225 +95,202 @@ export default function AttendancePage() {
     }
   }
 
+  const fmtTime = (t: string) =>
+    new Date(`2000-01-01T${t}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+
+  const inputCls = "w-full px-4 py-3 bg-luxury-card border border-luxury-border rounded-xl text-luxury-text text-sm focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20 transition-colors placeholder-luxury-subtle"
+  const labelCls = "block text-xs font-semibold text-luxury-muted uppercase tracking-widest mb-2"
+
   return (
-    <div className="container mx-auto px-4 py-10 max-w-2xl">
-      <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <div className="container mx-auto px-4 sm:px-6 py-10 max-w-xl">
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-10">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Record Attendance</h1>
-          <p className="text-gray-600 text-sm sm:text-base">Capture client attendance with date and time</p>
+          <p className="text-xs font-semibold tracking-widest text-gold uppercase mb-1">Check In / Out</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-luxury-text">Attendance</h1>
+          <div className="mt-3 h-px w-12 bg-gold/40" />
         </div>
-        <Link
-          href="/attendance/list"
-          className="text-fitura-blue hover:text-fitura-magenta font-medium flex items-center gap-2 text-sm sm:text-base"
-        >
-          View Attendance List →
+        <Link href="/attendance/list"
+          className="flex items-center gap-1.5 text-xs font-semibold text-luxury-muted border border-luxury-border px-3 py-2 rounded-xl hover:border-gold/40 hover:text-gold transition-all mt-1">
+          View List <ArrowUpRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Client ID */}
-          <div>
-            <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-2">
-              Client ID <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="clientId"
-              name="clientId"
-              value={formData.clientId}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
-              placeholder="Enter client ID"
-              required
-            />
-            <p className="mt-1 text-xs text-gray-500">Enter the client&apos;s ID. First entry for the day = IN, second entry = OUT</p>
-          </div>
+      {/* Form Card */}
+      <div className="relative bg-luxury-surface border border-luxury-border rounded-2xl overflow-hidden">
+        {/* Top gold line */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
 
-          {/* Date */}
-          <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-              Date <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              id="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
-              required
-            />
-            <p className="mt-1 text-xs text-gray-500">Attendance date (pre-populated with today&apos;s date)</p>
-          </div>
+        <div className="p-6 sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Time */}
-          <div>
-            <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-2">
-              Time <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="time"
-              id="time"
-              name="time"
-              value={formData.time}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
-              required
-            />
-            <p className="mt-1 text-xs text-gray-500">Attendance time (pre-populated with current time)</p>
-          </div>
-
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-800">{error}</p>
+            {/* Client ID */}
+            <div>
+              <label htmlFor="clientId" className={labelCls}>
+                Client ID <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="clientId"
+                name="clientId"
+                value={formData.clientId}
+                onChange={handleChange}
+                placeholder="Enter client ID"
+                required
+                autoFocus
+                className={inputCls}
+              />
+              <p className="mt-2 text-xs text-luxury-subtle">
+                First entry = Check IN &nbsp;·&nbsp; Second entry = Check OUT
+              </p>
             </div>
-          )}
 
-          {/* Submit Button */}
-          <div className="flex gap-4 pt-4">
+            {/* Date & Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="date" className={labelCls}>
+                  Date <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  required
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label htmlFor="time" className={labelCls}>
+                  Time <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="time"
+                  id="time"
+                  name="time"
+                  value={formData.time}
+                  onChange={handleChange}
+                  required
+                  className={inputCls}
+                />
+              </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="bg-fitura-dark text-white px-8 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="w-full flex items-center justify-center gap-2 bg-gold text-luxury-black py-3.5 rounded-xl font-bold text-sm tracking-wide hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-[0_0_24px_rgba(212,175,55,0.35)]"
             >
-              <Clock className="w-5 h-5" />
-              {loading ? 'Recording...' : 'Record Attendance'}
+              <Clock className="w-4 h-4" />
+              {loading ? 'Recording…' : 'Record Attendance'}
             </button>
-          </div>
-        </form>
+
+          </form>
+        </div>
       </div>
 
       {/* Success Modal */}
       {showModal && successData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative my-8 max-h-[90vh] overflow-y-auto">
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                setShowModal(false)
-                setSuccessData(null)
-              }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Close modal"
-            >
-              <X className="w-6 h-6" />
-            </button>
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+          <div className="relative bg-luxury-surface border border-luxury-border rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
 
-            {/* Countdown Timer */}
-            <div className="absolute top-4 left-4">
-              <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-semibold">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                <span>Closing in {countdown}s</span>
+            {/* Top accent line */}
+            <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${successData.status === 'IN' ? 'via-green-400/70' : 'via-orange-400/70'} to-transparent`} />
+
+            {/* Close + Countdown */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-2">
+              <div className="flex items-center gap-2 bg-luxury-card border border-luxury-border rounded-full px-3 py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+                <span className="text-xs font-semibold text-luxury-muted">Closing in {countdown}s</span>
               </div>
+              <button onClick={() => { setShowModal(false); setSuccessData(null) }}
+                className="p-1.5 rounded-lg hover:bg-luxury-elevated text-luxury-muted hover:text-luxury-text transition-colors">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Success Icon */}
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="w-10 h-10 text-green-600" />
-              </div>
-            </div>
-
-            {/* Client Photo */}
-            <div className="flex justify-center mb-4">
-              {successData.client.photoUrl ? (
-                <img
-                  src={successData.client.photoUrl}
-                  alt={`${successData.client.firstName} ${successData.client.lastName}`}
-                  className="w-[350px] h-[350px] object-cover rounded-lg border-4 border-green-200 shadow-lg"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              ) : (
-                <div className="w-[350px] h-[350px] bg-gray-200 rounded-lg border-4 border-green-200 shadow-lg flex items-center justify-center">
-                  <span className="text-gray-400 text-6xl font-semibold">
-                    {successData.client.firstName?.[0] || successData.client.clientId[0] || '?'}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Client Name */}
-            <div className="text-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">
-                {successData.client.firstName && successData.client.lastName
-                  ? `${successData.client.firstName} ${successData.client.lastName}`
-                  : `Client ID: ${successData.client.clientId}`}
-              </h3>
-              {successData.client.firstName && successData.client.lastName && (
-                <p className="text-sm text-gray-500">ID: {successData.client.clientId}</p>
-              )}
-            </div>
-
-            {/* Status Badge */}
-            <div className="flex justify-center mb-4">
-              <span
-                className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${
-                  successData.status === 'IN'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}
-              >
-                {successData.status === 'IN' ? '✓ Checked IN' : '✓ Checked OUT'}
-              </span>
-            </div>
-
-            {/* Time Information */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">IN Time:</span>
-                  <span className="font-semibold text-gray-900">
-                    {new Date(`2000-01-01T${successData.inTime}`).toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </div>
-                {successData.outTime && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">OUT Time:</span>
-                    <span className="font-semibold text-gray-900">
-                      {new Date(`2000-01-01T${successData.outTime}`).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+            {/* Photo */}
+            <div className="px-5 pt-2 pb-4">
+              <div className="flex justify-center mb-5">
+                {successData.client.photoUrl ? (
+                  <img
+                    src={successData.client.photoUrl}
+                    alt={`${successData.client.firstName} ${successData.client.lastName}`}
+                    className={`w-64 h-64 object-cover rounded-xl border-2 shadow-lg ${successData.status === 'IN' ? 'border-green-400/40' : 'border-orange-400/40'}`}
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
+                ) : (
+                  <div className={`w-64 h-64 bg-luxury-card rounded-xl border-2 flex items-center justify-center ${successData.status === 'IN' ? 'border-green-400/30' : 'border-orange-400/30'}`}>
+                    <span className="text-6xl font-black text-luxury-muted">
+                      {successData.client.firstName?.[0] || successData.client.clientId[0] || '?'}
                     </span>
                   </div>
                 )}
+              </div>
+
+              {/* Name + Status */}
+              <div className="text-center mb-5">
+                <h3 className="text-lg font-black text-luxury-text">
+                  {successData.client.firstName && successData.client.lastName
+                    ? `${successData.client.firstName} ${successData.client.lastName}`
+                    : `Client #${successData.client.clientId}`}
+                </h3>
+                {successData.client.firstName && (
+                  <p className="text-xs text-luxury-muted mt-0.5">ID: {successData.client.clientId}</p>
+                )}
+                <div className="flex justify-center mt-3">
+                  <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold border
+                    ${successData.status === 'IN'
+                      ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                      : 'bg-orange-500/10 text-orange-400 border-orange-500/30'}`}>
+                    {successData.status === 'IN'
+                      ? <><LogIn className="w-3.5 h-3.5" /> Checked IN</>
+                      : <><LogOut className="w-3.5 h-3.5" /> Checked OUT</>}
+                  </span>
+                </div>
+              </div>
+
+              {/* Times */}
+              <div className="bg-luxury-card border border-luxury-border rounded-xl p-4 mb-5 space-y-2.5 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-luxury-muted">IN Time</span>
+                  <span className="font-bold text-luxury-text">{fmtTime(successData.inTime)}</span>
+                </div>
+                {successData.outTime && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-luxury-muted">OUT Time</span>
+                    <span className="font-bold text-luxury-text">{fmtTime(successData.outTime)}</span>
+                  </div>
+                )}
                 {successData.duration && (
-                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                    <span className="text-gray-600 font-medium">Duration:</span>
-                    <span className="font-bold text-blue-600">{successData.duration}</span>
+                  <div className="flex justify-between items-center pt-2.5 border-t border-luxury-border">
+                    <span className="text-luxury-muted font-medium">Duration</span>
+                    <span className="font-black text-gold">{successData.duration}</span>
                   </div>
                 )}
               </div>
+
+              {/* OK Button */}
+              <button
+                onClick={() => { setShowModal(false); setSuccessData(null) }}
+                className="w-full py-3 bg-gold text-luxury-black rounded-xl font-bold text-sm hover:bg-gold-light transition-all hover:shadow-[0_0_20px_rgba(212,175,55,0.3)]">
+                Done
+              </button>
             </div>
-
-            {/* Success Message */}
-            <p className="text-center text-sm text-gray-600 mb-4">
-              Attendance recorded successfully! The system will automatically toggle between IN and OUT for the same member on the same day.
-            </p>
-
-            {/* OK Button */}
-            <button
-              onClick={() => {
-                setShowModal(false)
-                setSuccessData(null)
-              }}
-              className="w-full bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors"
-            >
-              OK
-            </button>
           </div>
         </div>
       )}
     </div>
   )
 }
-

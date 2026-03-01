@@ -37,6 +37,7 @@ interface Client {
   transactionId?: string
   address?: string
   photoUrl?: string
+  gym?: string
   createdAt: string
 }
 
@@ -49,6 +50,7 @@ export default function ClientsPage() {
   const [limit, setLimit] = useState(10)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
+  const [filterGym, setFilterGym] = useState<string>('')
   const [filterClientId, setFilterClientId] = useState('')
   const [filterName, setFilterName] = useState('')
   const [filterPhone, setFilterPhone] = useState('')
@@ -82,7 +84,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetchClients()
-  }, [page, limit, filterClientIdDebounced, filterNameDebounced, filterPhoneDebounced])
+  }, [page, limit, filterGym, filterClientIdDebounced, filterNameDebounced, filterPhoneDebounced])
 
   useEffect(() => {
     if (renewClient) {
@@ -171,6 +173,7 @@ export default function ClientsPage() {
       const params = new URLSearchParams()
       params.set('page', String(page))
       params.set('limit', String(limit))
+      if (filterGym.trim()) params.set('gym', filterGym.trim())
       if (filterClientIdDebounced.trim()) params.set('clientId', filterClientIdDebounced.trim())
       if (filterNameDebounced.trim()) params.set('name', filterNameDebounced.trim())
       if (filterPhoneDebounced.trim()) params.set('phone', filterPhoneDebounced.trim())
@@ -289,12 +292,24 @@ export default function ClientsPage() {
             <h1 className="text-3xl sm:text-4xl font-bold mb-2">Clients</h1>
             <p className="text-gray-600 text-sm sm:text-base">Manage your gym members</p>
           </div>
-          <Link
-            href="/clients/new"
-            className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
-          >
-            + Register New Client
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={filterGym}
+              onChange={(e) => { setFilterGym(e.target.value); setPage(1); }}
+              className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-fitura-blue focus:border-transparent min-w-[180px]"
+              aria-label="Filter by gym"
+            >
+              <option value="">Overall</option>
+              <option value="Rival Fitness Studio I">Rival Fitness Studio I</option>
+              <option value="Rival Fitness Studio II">Rival Fitness Studio II</option>
+            </select>
+            <Link
+              href="/clients/new"
+              className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
+            >
+              + Register New Client
+            </Link>
+          </div>
         </div>
         <PageLoader message="Loading clients..." />
       </div>
@@ -308,12 +323,24 @@ export default function ClientsPage() {
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">Clients</h1>
           <p className="text-gray-600 text-sm sm:text-base">Manage your gym members</p>
         </div>
-        <Link
-          href="/clients/new"
-          className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
-        >
-          + Register New Client
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={filterGym}
+            onChange={(e) => { setFilterGym(e.target.value); setPage(1); }}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-fitura-blue focus:border-transparent min-w-[180px]"
+            aria-label="Filter by gym"
+          >
+            <option value="">Overall</option>
+            <option value="Rival Fitness Studio I">Rival Fitness Studio I</option>
+            <option value="Rival Fitness Studio II">Rival Fitness Studio II</option>
+          </select>
+          <Link
+            href="/clients/new"
+            className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
+          >
+            + Register New Client
+          </Link>
+        </div>
       </div>
 
       {clients.length > 0 ? (
@@ -453,6 +480,9 @@ export default function ClientsPage() {
                       </Link>
                       <div className="text-xs text-gray-500">{client.email}</div>
                       <div className="text-xs text-gray-500">{client.phone}</div>
+                      <div className="text-xs text-gray-600 mt-0.5">
+                        {client.gym || 'Rival Fitness Studio I'}
+                      </div>
                       <div className="text-xs text-gray-500 md:hidden mt-1">
                         Expiry: {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
                       </div>
@@ -460,8 +490,9 @@ export default function ClientsPage() {
                         {client.membershipName || 'N/A'}
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
-                      {client.phone || '—'}
+                    <td className="px-3 sm:px-6 py-4 hidden sm:table-cell">
+                      <div className="text-sm text-gray-500">{client.phone || '—'}</div>
+                      <div className="text-xs text-gray-600 mt-0.5">{client.gym || 'Rival Fitness Studio I'}</div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                       {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
@@ -537,18 +568,18 @@ export default function ClientsPage() {
               <Users className="w-24 h-24 text-gray-400" />
             </div>
             <h3 className="text-2xl font-semibold mb-2">
-              {filterClientId || filterName || filterPhone ? 'No clients found' : 'No clients yet'}
+              {filterClientId || filterName || filterPhone || filterGym ? 'No clients found' : 'No clients yet'}
             </h3>
             <p className="text-gray-500 mb-6">
-              {filterClientId || filterName || filterPhone
+              {filterClientId || filterName || filterPhone || filterGym
                 ? 'Try adjusting your filters or clear them to see all clients'
                 : 'Get started by registering your first client'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {(filterClientId || filterName || filterPhone) && (
+              {(filterClientId || filterName || filterPhone || filterGym) && (
                 <button
                   type="button"
-                  onClick={() => { setFilterClientId(''); setFilterName(''); setFilterPhone(''); setFilterClientIdDebounced(''); setFilterNameDebounced(''); setFilterPhoneDebounced(''); setPage(1); }}
+                  onClick={() => { setFilterGym(''); setFilterClientId(''); setFilterName(''); setFilterPhone(''); setFilterClientIdDebounced(''); setFilterNameDebounced(''); setFilterPhoneDebounced(''); setPage(1); }}
                   className="text-fitura-blue hover:text-fitura-dark font-medium"
                 >
                   Clear filters

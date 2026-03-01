@@ -38,6 +38,7 @@ export interface ClientsPaginatedFilters {
   clientId?: string;
   name?: string;
   phone?: string;
+  gym?: string;
 }
 
 function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unknown> {
@@ -61,6 +62,10 @@ function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unkn
   if (filters.phone != null && String(filters.phone).trim() !== '') {
     const term = String(filters.phone).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     (base as Record<string, unknown>).phone = { $regex: term, $options: 'i' };
+  }
+
+  if (filters.gym != null && String(filters.gym).trim() !== '') {
+    (base as Record<string, unknown>).gym = String(filters.gym).trim();
   }
 
   return base;

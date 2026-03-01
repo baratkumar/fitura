@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  DollarSign, 
-  Users, 
-  CheckCircle, 
-  Clock, 
-  TrendingUp, 
-  UserPlus, 
-  User, 
-  Wallet 
+import {
+  DollarSign,
+  Users,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  UserPlus,
+  User,
+  Wallet,
 } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
 
@@ -93,12 +93,14 @@ export default function Dashboard() {
       value: stats ? formatCurrency(stats.currentWeekRevenue) : '₹0',
       icon: TrendingUp,
       color: 'bg-fitura-blue',
+      href: '/clients/joined-this-week',
     },
     {
       title: 'Current Week Clients',
       value: stats?.currentWeekClients || 0,
       icon: UserPlus,
       color: 'bg-fitura-purple-600',
+      href: '/clients/joined-this-week',
     },
     {
       title: 'Total Clients',

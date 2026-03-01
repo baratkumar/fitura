@@ -141,6 +141,90 @@ export async function getExpiringClients(): Promise<ClientType[]> {
     .filter((client): client is ClientType => client !== null && client.clientId >= 1);
 }
 
+function getThisWeekDateRange(): { weekStart: Date; weekEnd: Date } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weekStart = new Date(today);
+  const dayOfWeek = today.getDay();
+  const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  weekStart.setDate(diff);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+  return { weekStart, weekEnd };
+}
+
+/** Get clients who joined during the current week (Monday–Sunday, based on createdAt) */
+export async function getClientsJoinedThisWeek(): Promise<ClientType[]> {
+  await connectDB();
+  const { weekStart, weekEnd } = getThisWeekDateRange();
+
+  const clients = await Client.find({
+    ...clientListFilter,
+    createdAt: { $gte: weekStart, $lte: weekEnd },
+  })
+    .populate('membershipType', 'name membershipId')
+    .sort({ createdAt: -1, clientId: -1 })
+    .lean();
+
+  return clients
+    .map(client => {
+      try {
+        return mapToClientType(client);
+      } catch (error) {
+        console.error('Skipping invalid client:', error);
+        return null;
+      }
+    })
+    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+}
+
+/** Get clients who joined this week, paginated */
+export async function getClientsJoinedThisWeekPaginated(
+  page: number = 1,
+  limit: number = 10
+): Promise<ClientsPaginatedResult> {
+  await connectDB();
+  const { weekStart, weekEnd } = getThisWeekDateRange();
+  const skip = Math.max(0, (page - 1) * limit);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+
+  const weekFilter = {
+    ...clientListFilter,
+    createdAt: { $gte: weekStart, $lte: weekEnd },
+  };
+
+  const [clients, total] = await Promise.all([
+    Client.find(weekFilter)
+      .populate('membershipType', 'name membershipId')
+      .sort({ createdAt: -1, clientId: -1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .lean(),
+    Client.countDocuments(weekFilter),
+  ]);
+
+  const mapped = clients
+    .map(client => {
+      try {
+        return mapToClientType(client);
+      } catch (error) {
+        console.error('Skipping invalid client:', error);
+        return null;
+      }
+    })
+    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+
+  return {
+    clients: mapped,
+    total,
+    page,
+    limit: safeLimit,
+    totalPages: Math.ceil(total / safeLimit) || 1,
+  };
+}
+
 export async function getClient(id: string): Promise<ClientType | null> {
   await connectDB();
   // Try to find by clientId first (if it's a number), otherwise try MongoDB _id

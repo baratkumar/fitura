@@ -22,6 +22,7 @@ export default function EditClientPage() {
   const [saving, setSaving] = useState(false)
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [formData, setFormData] = useState({
+    gym: 'Rival Fitness Studio I',
     firstName: '',
     lastName: '',
     email: '',
@@ -68,6 +69,7 @@ export default function EditClientPage() {
       if (response.ok) {
         const client = await response.json()
         setFormData({
+          gym: client.gym || 'Rival Fitness Studio I',
           firstName: client.firstName || '',
           lastName: client.lastName || '',
           email: client.email || '',
@@ -385,6 +387,23 @@ export default function EditClientPage() {
                   <p className="mt-1 text-xs text-gray-500">JPG, PNG or GIF (max. 10MB, will be resized to 1080x1920)</p>
                 </div>
               </div>
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="gym" className="block text-sm font-medium text-gray-700 mb-2">
+                Gym <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="gym"
+                name="gym"
+                value={formData.gym}
+                onChange={handleChange}
+                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
+                required
+              >
+                <option value="Rival Fitness Studio I">Rival Fitness Studio I</option>
+                <option value="Rival Fitness Studio II">Rival Fitness Studio II</option>
+              </select>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">

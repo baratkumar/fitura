@@ -346,8 +346,9 @@ export async function addClient(clientData: Omit<ClientType, 'clientId' | 'creat
     address: clientData.address,
     emergencyContactName: clientData.emergencyContactName,
     emergencyContactPhone: clientData.emergencyContactPhone,
+    gym: clientData.gym || 'Rival Fitness Studio I',
   };
-  
+
   // Add optional fields only if they exist
   if (clientData.age !== undefined) clientDataToSave.age = clientData.age;
   if (clientData.height !== undefined) clientDataToSave.height = clientData.height;
@@ -504,6 +505,7 @@ export async function updateClient(id: string, clientData: Partial<ClientType>):
     console.log('[updateClient] photoUrl not provided in update data');
   }
   if (clientData.address !== undefined) updateData.address = clientData.address;
+  if (clientData.gym !== undefined) updateData.gym = clientData.gym;
   if (clientData.membershipType !== undefined) {
     // Convert membershipId to MongoDB ObjectId if it's a number
     let membershipTypeId = clientData.membershipType;
@@ -621,7 +623,21 @@ function mapToClientType(client: any): ClientType {
     fitnessGoals: client.fitnessGoals,
     firstTimeInGym: client.firstTimeInGym,
     previousGymDetails: client.previousGymDetails,
+    gym: client.gym || 'Rival Fitness Studio I',
     createdAt: client.createdAt ? client.createdAt.toISOString() : new Date().toISOString(),
     updatedAt: client.updatedAt ? client.updatedAt.toISOString() : undefined,
   };
+}
+
+/**
+ * Set gym to "Rival Fitness Studio I" for all clients that don't have gym set.
+ * Run once to migrate existing data.
+ */
+export async function migrateClientsGym(): Promise<{ updated: number }> {
+  await connectDB();
+  const result = await Client.updateMany(
+    { $or: [{ gym: { $exists: false } }, { gym: null }, { gym: '' }] },
+    { $set: { gym: 'Rival Fitness Studio I' } }
+  );
+  return { updated: result.modifiedCount };
 }

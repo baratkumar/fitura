@@ -38,6 +38,7 @@ interface Client {
   fitnessGoals?: string
   firstTimeInGym?: string
   previousGymDetails?: string
+  gym?: string
   createdAt: string
 }
 
@@ -401,6 +402,12 @@ export default function ViewClientPage() {
               Personal Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(client.gym || 'Rival Fitness Studio I') && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase">Gym</label>
+                  <p className="text-gray-900">{client.gym || 'Rival Fitness Studio I'}</p>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase">Date of Birth</label>
                 <p className="text-gray-900">{formatDate(client.dateOfBirth)}</p>

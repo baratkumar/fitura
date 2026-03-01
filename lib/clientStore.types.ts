@@ -32,6 +32,7 @@ export interface Client {
   fitnessGoals?: string
   firstTimeInGym?: string
   previousGymDetails?: string
+  gym?: string
   createdAt: string
   updatedAt?: string
 }

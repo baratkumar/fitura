@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('[POST /api/clients] Received request body. photoUrl:', body.photoUrl, 'typeof:', typeof body.photoUrl)
     const {
+      gym,
       firstName,
       lastName,
       email,
@@ -139,6 +140,7 @@ export async function POST(request: NextRequest) {
       fitnessGoals: fitnessGoals || '',
       firstTimeInGym: firstTimeInGym || undefined,
       previousGymDetails: previousGymDetails || undefined,
+      gym: gym && gym.trim() ? gym.trim() : undefined,
     })
 
     return NextResponse.json(newClient, { status: 201 })

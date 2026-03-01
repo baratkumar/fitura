@@ -31,6 +31,7 @@ export interface IClient extends Document {
   fitnessGoals?: string;
   firstTimeInGym?: string;
   previousGymDetails?: string;
+  gym?: string;
 }
 
 const ClientSchema = new Schema<IClient>(
@@ -144,6 +145,10 @@ const ClientSchema = new Schema<IClient>(
     },
     previousGymDetails: {
       type: String,
+    },
+    gym: {
+      type: String,
+      trim: true,
     },
   },
   {

@@ -277,7 +277,7 @@ export default function NewClientPage() {
                 name="gym"
                 value={formData.gym}
                 onChange={handleChange}
-                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
                 required
               >
                 <option value="Rival Fitness Studio I">Rival Fitness Studio I</option>

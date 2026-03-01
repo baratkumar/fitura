@@ -296,7 +296,7 @@ export default function ClientsPage() {
             <select
               value={filterGym}
               onChange={(e) => { setFilterGym(e.target.value); setPage(1); }}
-              className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-fitura-blue focus:border-transparent min-w-[180px]"
+              className="text-sm sm:text-base border border-gray-300 rounded-lg px-4 sm:px-6 py-2 sm:py-3 bg-white focus:ring-2 focus:ring-fitura-blue focus:border-transparent font-semibold min-h-[44px] sm:min-h-[48px]"
               aria-label="Filter by gym"
             >
               <option value="">Overall</option>
@@ -305,7 +305,7 @@ export default function ClientsPage() {
             </select>
             <Link
               href="/clients/new"
-              className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
+              className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base inline-block"
             >
               + Register New Client
             </Link>
@@ -324,23 +324,23 @@ export default function ClientsPage() {
           <p className="text-gray-600 text-sm sm:text-base">Manage your gym members</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={filterGym}
-            onChange={(e) => { setFilterGym(e.target.value); setPage(1); }}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-fitura-blue focus:border-transparent min-w-[180px]"
-            aria-label="Filter by gym"
-          >
-            <option value="">Overall</option>
-            <option value="Rival Fitness Studio I">Rival Fitness Studio I</option>
-            <option value="Rival Fitness Studio II">Rival Fitness Studio II</option>
-          </select>
-          <Link
-            href="/clients/new"
-            className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base"
-          >
-            + Register New Client
-          </Link>
-        </div>
+            <select
+              value={filterGym}
+              onChange={(e) => { setFilterGym(e.target.value); setPage(1); }}
+              className="text-sm sm:text-base border border-gray-300 rounded-lg px-4 sm:px-6 py-2 sm:py-3 bg-white focus:ring-2 focus:ring-fitura-blue focus:border-transparent font-semibold min-h-[44px] sm:min-h-[48px]"
+              aria-label="Filter by gym"
+            >
+              <option value="">Overall</option>
+              <option value="Rival Fitness Studio I">Rival Fitness Studio I</option>
+              <option value="Rival Fitness Studio II">Rival Fitness Studio II</option>
+            </select>
+            <Link
+              href="/clients/new"
+              className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors text-center text-sm sm:text-base inline-block"
+            >
+              + Register New Client
+            </Link>
+          </div>
       </div>
 
       {clients.length > 0 ? (
@@ -490,9 +490,8 @@ export default function ClientsPage() {
                         {client.membershipName || 'N/A'}
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 hidden sm:table-cell">
-                      <div className="text-sm text-gray-500">{client.phone || '—'}</div>
-                      <div className="text-xs text-gray-600 mt-0.5">{client.gym || 'Rival Fitness Studio I'}</div>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+                      {client.phone || '—'}
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                       {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}

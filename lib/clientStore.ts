@@ -65,7 +65,15 @@ function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unkn
   }
 
   if (filters.gym != null && String(filters.gym).trim() !== '') {
-    (base as Record<string, unknown>).gym = String(filters.gym).trim();
+    const gymValue = String(filters.gym).trim();
+    // "Rival Fitness Studio I" includes clients with no gym set (legacy/default)
+    if (gymValue === 'Rival Fitness Studio I') {
+      (base as Record<string, unknown>).$and = [
+        { $or: [{ gym: gymValue }, { gym: null }, { gym: '' }, { gym: { $exists: false } }] },
+      ];
+    } else {
+      (base as Record<string, unknown>).gym = gymValue;
+    }
   }
 
   return base;

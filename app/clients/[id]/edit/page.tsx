@@ -389,24 +389,23 @@ export default function EditClientPage() {
               </div>
             </div>
 
-            <div className="mb-6">
-              <label htmlFor="gym" className="block text-sm font-medium text-gray-700 mb-2">
-                Gym <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="gym"
-                name="gym"
-                value={formData.gym}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
-                required
-              >
-                <option value="Rival Fitness Studio I">Rival Fitness Studio I</option>
-                <option value="Rival Fitness Studio II">Rival Fitness Studio II</option>
-              </select>
-            </div>
-
             <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="gym" className="block text-sm font-medium text-gray-700 mb-2">
+                  Gym <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="gym"
+                  name="gym"
+                  value={formData.gym}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fitura-purple-500 focus:border-transparent"
+                  required
+                >
+                  <option value="Rival Fitness Studio I">Rival Fitness Studio I</option>
+                  <option value="Rival Fitness Studio II">Rival Fitness Studio II</option>
+                </select>
+              </div>
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                   First Name <span className="text-red-500">*</span>

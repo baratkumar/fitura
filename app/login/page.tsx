@@ -107,10 +107,6 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Default: admin@fitura.com / admin123
-        </p>
       </div>
     </div>
   )

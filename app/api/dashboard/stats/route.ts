@@ -29,108 +29,98 @@ export async function GET() {
     const nextWeekEnd = new Date(weekEnd);
     nextWeekEnd.setDate(weekEnd.getDate() + 7);
 
-    // Today's clients and revenue
-    const todayClients = await Client.aggregate([
-      {
-        $match: {
-          createdAt: {
-            $gte: today,
-            $lte: todayEnd,
+    // Run all stats queries in parallel for faster response
+    const [
+      todayClients,
+      weekClients,
+      totalClients,
+      expiringClients,
+      todayAttendance,
+    ] = await Promise.all([
+      // Today's clients and revenue
+      Client.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: today, $lte: todayEnd },
           },
         },
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
-        },
-      },
-    ]);
-
-    // Current week clients and revenue
-    const weekClients = await Client.aggregate([
-      {
-        $match: {
-          createdAt: {
-            $gte: weekStart,
-            $lte: weekEnd,
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 },
+            revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
           },
         },
-      },
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
-        },
-      },
-    ]);
-
-    // Total clients and overall revenue
-    const totalClients = await Client.aggregate([
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
-        },
-      },
-    ]);
-
-    // Expiring clients this week
-    // Calculate expiry date: joiningDate + membership duration
-    const expiringClients = await Client.aggregate([
-      {
-        $lookup: {
-          from: 'memberships',
-          localField: 'membershipType',
-          foreignField: '_id',
-          as: 'membership',
-        },
-      },
-      {
-        $unwind: {
-          path: '$membership',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $match: {
-          'membership.durationDays': { $exists: true, $ne: null },
-          joiningDate: { $exists: true, $ne: null },
-        },
-      },
-      {
-        $addFields: {
-          expiryDate: {
-            $add: [
-              '$joiningDate',
-              { $multiply: ['$membership.durationDays', 24 * 60 * 60 * 1000] },
-            ],
+      ]),
+      // Current week clients and revenue
+      Client.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: weekStart, $lte: weekEnd },
           },
         },
-      },
-      {
-        $match: {
-          expiryDate: {
-            $gte: today,
-            $lte: nextWeekEnd,
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 },
+            revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
           },
         },
-      },
-      {
-        $count: 'count',
-      },
+      ]),
+      // Total clients and overall revenue
+      Client.aggregate([
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 },
+            revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
+          },
+        },
+      ]),
+      // Expiring clients this week (joiningDate + membership duration in range)
+      Client.aggregate([
+        {
+          $lookup: {
+            from: 'memberships',
+            localField: 'membershipType',
+            foreignField: '_id',
+            as: 'membership',
+          },
+        },
+        {
+          $unwind: {
+            path: '$membership',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $match: {
+            'membership.durationDays': { $exists: true, $ne: null },
+            joiningDate: { $exists: true, $ne: null },
+          },
+        },
+        {
+          $addFields: {
+            expiryDate: {
+              $add: [
+                '$joiningDate',
+                { $multiply: ['$membership.durationDays', 24 * 60 * 60 * 1000] },
+              ],
+            },
+          },
+        },
+        {
+          $match: {
+            expiryDate: { $gte: today, $lte: nextWeekEnd },
+          },
+        },
+        { $count: 'count' },
+      ]),
+      // Today's attendance
+      Attendance.countDocuments({
+        attendanceDate: { $gte: today, $lte: todayEnd },
+      }),
     ]);
-
-    // Today's attendance
-    const todayAttendance = await Attendance.countDocuments({
-      attendanceDate: {
-        $gte: today,
-        $lte: todayEnd,
-      },
-    });
 
     const stats = {
       todayRevenue: todayClients[0]?.revenue || 0,

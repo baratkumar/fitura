@@ -48,23 +48,24 @@ if (!global.mongoose) {
 }
 
 async function connectDB(): Promise<Mongoose> {
-  if (cached.conn) {
-    console.log('✓ Using cached MongoDB connection');
+  // Reuse cached connection only if still connected (serverless can keep stale refs)
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
+  cached.conn = null;
   if (!cached.promise) {
-    const opts = {
+    const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 10000,
+      maxPoolSize: 10,
     };
 
-    // Log connection attempt (mask password in URI)
-    const maskedUri = MONGODB_URI_FINAL.replace(/(mongodb:\/\/[^:]+:)([^@]+)(@)/, '$1****$3');
-    console.log('Connecting to MongoDB...');
-    console.log(`Connection URI: ${maskedUri}`);
-    
     cached.promise = mongoose.connect(MONGODB_URI_FINAL, opts).then((mongooseInstance: Mongoose) => {
-      console.log('✓ MongoDB connected successfully');
+      if (process.env.NODE_ENV === 'development') {
+        const masked = MONGODB_URI_FINAL.replace(/(mongodb:\/\/[^:]+:)([^@]+)(@)/, '$1****$3');
+        console.log('✓ MongoDB connected:', masked.slice(0, 50) + '...');
+      }
       return mongooseInstance;
     });
   }

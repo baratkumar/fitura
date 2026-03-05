@@ -9,13 +9,14 @@
 const fs = require('fs')
 const path = require('path')
 
-// Load .env.local into process.env
+// Load .env.local into process.env (don't overwrite if already set, e.g. from command line)
 const envPath = path.join(__dirname, '..', '.env.local')
 if (fs.existsSync(envPath)) {
   fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
     const m = line.match(/^([^#=]+)=(.*)$/)
     if (m) {
       const key = m[1].trim()
+      if (process.env[key] !== undefined) return // keep existing env (e.g. MONGODB_URI from CLI)
       let val = m[2].trim()
       if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
         val = val.slice(1, -1)

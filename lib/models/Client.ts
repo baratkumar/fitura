@@ -156,6 +156,11 @@ const ClientSchema = new Schema<IClient>(
   }
 );
 
+// Indexes for faster queries (list filters, dashboard, expiring)
+ClientSchema.index({ createdAt: 1 });
+ClientSchema.index({ expiryDate: 1 });
+ClientSchema.index({ gym: 1 });
+
 // Delete the model if it exists to force recompilation with new schema
 if (mongoose.models.Client) {
   delete mongoose.models.Client;

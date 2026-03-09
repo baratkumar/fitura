@@ -88,18 +88,61 @@ export async function getClientsPaginated(
   const skip = Math.max(0, (page - 1) * limit);
   const safeLimit = Math.min(100, Math.max(1, limit));
   const listFilter = buildListFilter(filters);
-  const [clients, total] = await Promise.all([
-    Client.find(listFilter)
-      .populate('membershipType', 'name membershipId')
-      .sort({ clientId: -1 })
-      .skip(skip)
-      .limit(safeLimit)
-      .lean(),
-    Client.countDocuments(listFilter),
+
+  // Single round trip: $facet runs list pipeline and count in parallel on the server
+  const listPipeline: Record<string, unknown>[] = [
+    { $sort: { clientId: -1 } },
+    { $skip: skip },
+    { $limit: safeLimit },
+    {
+      $project: {
+        clientId: 1,
+        firstName: 1,
+        lastName: 1,
+        email: 1,
+        phone: 1,
+        photoUrl: 1,
+        membershipType: 1,
+        joiningDate: 1,
+        expiryDate: 1,
+        membershipFee: 1,
+        discount: 1,
+        paidAmount: 1,
+        createdAt: 1,
+        gym: 1,
+      },
+    },
+    {
+      $lookup: {
+        from: 'memberships',
+        localField: 'membershipType',
+        foreignField: '_id',
+        as: '_membership',
+      },
+    },
+    {
+      $addFields: {
+        membershipType: { $arrayElemAt: ['$_membership', 0] },
+      },
+    },
+    { $project: { _membership: 0 } },
+  ];
+
+  const result = await Client.aggregate([
+    { $match: listFilter },
+    {
+      $facet: {
+        list: listPipeline,
+        totalCount: [{ $count: 'count' }],
+      },
+    },
   ]);
 
-  const mapped = clients
-    .map(client => {
+  const docs = (result[0]?.list as Record<string, unknown>[]) ?? [];
+  const total = (result[0]?.totalCount?.[0] as { count: number } | undefined)?.count ?? 0;
+
+  const mapped = docs
+    .map((client: Record<string, unknown>) => {
       try {
         return mapToClientType(client);
       } catch (error) {

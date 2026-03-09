@@ -406,30 +406,6 @@ export default function ClientsPage() {
                       </div>
                     </div>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                    <div className="flex flex-col gap-2">
-                      <span>Phone</span>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={filterPhone}
-                          onChange={(e) => setFilterPhone(e.target.value)}
-                          placeholder="Filter..."
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-fitura-purple-500 focus:border-transparent"
-                        />
-                        {filterPhone && (
-                          <button
-                            type="button"
-                            onClick={() => { setFilterPhone(''); setFilterPhoneDebounced(''); setPage(1); }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            title="Clear filter"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Expiry Date</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Membership</th>
@@ -489,9 +465,6 @@ export default function ClientsPage() {
                       <div className="text-xs text-gray-500 lg:hidden md:block mt-1">
                         {client.membershipName || 'N/A'}
                       </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
-                      {client.phone || '—'}
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                       {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}

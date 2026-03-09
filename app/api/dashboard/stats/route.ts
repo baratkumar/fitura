@@ -4,30 +4,48 @@ import Client from '@/lib/models/Client';
 import Attendance from '@/lib/models/Attendance';
 import Membership from '@/lib/models/Membership';
 
+const APP_TIMEZONE = 'Asia/Kolkata';
+
+/** Today's start and end in app timezone (IST) as UTC Dates for DB queries. */
+function getTodayRangeIST(): { start: Date; end: Date } {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-CA', { timeZone: APP_TIMEZONE }); // YYYY-MM-DD
+  const start = new Date(`${dateStr}T00:00:00+05:30`);
+  const end = new Date(`${dateStr}T23:59:59.999+05:30`);
+  return { start, end };
+}
+
+/** Current week (Mon–Sun) and next week end in IST for DB queries. */
+function getWeekRangeIST(): { weekStart: Date; weekEnd: Date; nextWeekEnd: Date } {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-CA', { timeZone: APP_TIMEZONE });
+  const ref = new Date(`${dateStr}T12:00:00+05:30`);
+  const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(
+    ref.toLocaleDateString('en-US', { timeZone: APP_TIMEZONE, weekday: 'short' })
+  );
+  const [y, m, day] = dateStr.split('-').map(Number);
+  const mondayOffset = dow === 0 ? 6 : dow - 1;
+  const mondayDate = new Date(y, m - 1, day - mondayOffset);
+  const sundayDate = new Date(mondayDate);
+  sundayDate.setDate(sundayDate.getDate() + 6);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const mondayStr = `${mondayDate.getFullYear()}-${pad(mondayDate.getMonth() + 1)}-${pad(mondayDate.getDate())}`;
+  const sundayStr = `${sundayDate.getFullYear()}-${pad(sundayDate.getMonth() + 1)}-${pad(sundayDate.getDate())}`;
+  const weekStart = new Date(`${mondayStr}T00:00:00+05:30`);
+  const weekEnd = new Date(`${sundayStr}T23:59:59.999+05:30`);
+  const nextSunday = new Date(sundayDate);
+  nextSunday.setDate(nextSunday.getDate() + 7);
+  const nextSundayStr = `${nextSunday.getFullYear()}-${pad(nextSunday.getMonth() + 1)}-${pad(nextSunday.getDate())}`;
+  const nextWeekEnd = new Date(`${nextSundayStr}T23:59:59.999+05:30`);
+  return { weekStart, weekEnd, nextWeekEnd };
+}
+
 export async function GET() {
   try {
     await connectDB();
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(today);
-    todayEnd.setHours(23, 59, 59, 999);
 
-    // Get start of current week (Monday)
-    const weekStart = new Date(today);
-    const dayOfWeek = today.getDay();
-    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    weekStart.setDate(diff);
-    weekStart.setHours(0, 0, 0, 0);
-
-    // Get end of current week (Sunday)
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-
-    // Get next week end for expiring clients
-    const nextWeekEnd = new Date(weekEnd);
-    nextWeekEnd.setDate(weekEnd.getDate() + 7);
+    const { start: today, end: todayEnd } = getTodayRangeIST();
+    const { weekStart, weekEnd, nextWeekEnd } = getWeekRangeIST();
 
     // Run all stats queries in parallel for faster response
     const [

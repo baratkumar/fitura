@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import connectDB from './db';
 import Client from './models/Client';
 import Membership from './models/Membership';
@@ -138,7 +139,7 @@ export async function getClientsPaginated(
         totalCount: [{ $count: 'count' }],
       },
     },
-  ]);
+  ] as unknown as mongoose.PipelineStage[]);
 
   const docs = (result[0]?.list as Record<string, unknown>[]) ?? [];
   const total = (result[0]?.totalCount?.[0] as { count: number } | undefined)?.count ?? 0;

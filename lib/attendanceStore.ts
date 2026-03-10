@@ -104,7 +104,7 @@ async function getAttendanceListAggregate(match: Record<string, unknown> = {}): 
     { $project: { _client: 0 } },
   ];
 
-  const docs = await Attendance.aggregate(pipeline);
+  const docs = await Attendance.aggregate(pipeline as unknown as mongoose.PipelineStage[]);
   return docs.map((d: Record<string, unknown>) => mapToAttendance(d));
 }
 
@@ -142,7 +142,7 @@ export async function getAttendanceByClientId(clientId: string | number): Promis
     { $project: { _client: 0 } },
   ];
 
-  const docs = await Attendance.aggregate(pipeline);
+  const docs = await Attendance.aggregate(pipeline as unknown as mongoose.PipelineStage[]);
   return docs.map((d: Record<string, unknown>) => mapToAttendance(d));
 }
 

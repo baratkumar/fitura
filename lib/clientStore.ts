@@ -92,8 +92,9 @@ export async function getClientsPaginated(
   const safeLimit = Math.min(100, Math.max(1, limit));
   const listFilter = buildListFilter(filters);
 
-  // Single round trip: $facet runs list pipeline and count in parallel on the server
+  // Two parallel queries (list + count) often faster than one heavy $facet
   const listPipeline: Record<string, unknown>[] = [
+    { $match: listFilter },
     { $sort: { clientId: -1 } },
     { $skip: skip },
     { $limit: safeLimit },
@@ -131,18 +132,12 @@ export async function getClientsPaginated(
     { $project: { _membership: 0 } },
   ];
 
-  const result = await Client.aggregate([
-    { $match: listFilter },
-    {
-      $facet: {
-        list: listPipeline,
-        totalCount: [{ $count: 'count' }],
-      },
-    },
-  ] as unknown as mongoose.PipelineStage[]);
-
-  const docs = (result[0]?.list as Record<string, unknown>[]) ?? [];
-  const total = (result[0]?.totalCount?.[0] as { count: number } | undefined)?.count ?? 0;
+  const [docs, total] = await Promise.all([
+    Client.aggregate(listPipeline as unknown as mongoose.PipelineStage[], {
+      hint: { clientId: -1 },
+    }),
+    Client.countDocuments(listFilter),
+  ]);
 
   const mapped = docs
     .map((client: Record<string, unknown>) => {

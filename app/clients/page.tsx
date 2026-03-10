@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
 
 const PAGE_SIZES = [10, 20, 50, 100]
-const SEARCH_DEBOUNCE_MS = 2500
+const SEARCH_DEBOUNCE_MS = 400
 
 interface Membership {
   membershipId: number

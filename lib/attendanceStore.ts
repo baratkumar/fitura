@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import connectDB from './db';
 import Attendance from './models/Attendance';
 import Client from './models/Client';
@@ -80,76 +81,79 @@ export async function autoCheckoutEndOfDay(endOfDayTime: string = '23:59:59'): P
   return checkedOutCount;
 }
 
-export async function getAllAttendance(): Promise<Attendance[]> {
+const ATTENDANCE_LIST_LIMIT = 1000;
+
+/** Single aggregation with $lookup for list (no auto-checkout on read path). */
+async function getAttendanceListAggregate(match: Record<string, unknown> = {}): Promise<Attendance[]> {
   await connectDB();
-  
-  // Auto-checkout any pending records before fetching
-  await autoCheckoutEndOfDay();
-  
-  const attendance = await Attendance.find()
-    .populate('clientId', 'firstName lastName clientId photoUrl')
-    .sort({ attendanceDate: -1, inTime: -1 })
-    .lean();
-  
-  return attendance.map(mapToAttendance);
+  const hasMatch = Object.keys(match).length > 0;
+  const pipeline: Record<string, unknown>[] = [
+    ...(hasMatch ? [{ $match: match }] : []),
+    { $sort: { attendanceDate: -1, inTime: -1 } },
+    ...(!hasMatch ? [{ $limit: ATTENDANCE_LIST_LIMIT }] : []),
+    {
+      $lookup: {
+        from: 'clients',
+        localField: 'clientId',
+        foreignField: '_id',
+        as: '_client',
+      },
+    },
+    { $unwind: { path: '$_client', preserveNullAndEmptyArrays: true } },
+    { $addFields: { clientId: '$_client' } },
+    { $project: { _client: 0 } },
+  ];
+
+  const docs = await Attendance.aggregate(pipeline);
+  return docs.map((d: Record<string, unknown>) => mapToAttendance(d));
+}
+
+export async function getAllAttendance(): Promise<Attendance[]> {
+  return getAttendanceListAggregate();
 }
 
 export async function getAttendanceByClientId(clientId: string | number): Promise<Attendance[]> {
   await connectDB();
-  
-  // Auto-checkout any pending records before fetching
-  await autoCheckoutEndOfDay();
-  
-  // Convert clientId to number if it's a string
   const clientIdNum = typeof clientId === 'string' ? parseInt(clientId) : clientId;
-  
-  // Find client by clientId (running number) or MongoDB _id
-  let client;
-  if (!isNaN(clientIdNum) && clientIdNum > 0 && clientIdNum < 100000) {
-    // It's a running clientId number
-    client = await Client.findOne({ clientId: clientIdNum });
-  } else {
-    // It might be a MongoDB ObjectId string
-    client = await Client.findById(clientId);
-  }
-  
-  if (!client) {
-    return []; // Return empty array if client not found
-  }
-  
-  // Use MongoDB _id for querying attendance
-  const clientMongoId = client._id;
-  
-  const attendance = await Attendance.find({ clientId: clientMongoId })
-    .populate('clientId', 'firstName lastName clientId photoUrl')
-    .sort({ attendanceDate: -1, inTime: -1 })
-    .lean();
-  
-  return attendance.map(mapToAttendance);
+  const isNumeric = !isNaN(clientIdNum) && clientIdNum > 0 && clientIdNum < 100000;
+
+  // Single aggregation: $lookup clients then $match by clientId (number) or _id (ObjectId)
+  const pipeline: Record<string, unknown>[] = [
+    {
+      $lookup: {
+        from: 'clients',
+        localField: 'clientId',
+        foreignField: '_id',
+        as: '_client',
+      },
+    },
+    { $unwind: { path: '$_client', preserveNullAndEmptyArrays: true } },
+    {
+      $match: isNumeric
+        ? { '_client.clientId': clientIdNum }
+        : { '_client._id': typeof clientId === 'string' ? clientId : clientId },
+    },
+    { $sort: { attendanceDate: -1, inTime: -1 } },
+    {
+      $addFields: {
+        clientId: '$_client',
+      },
+    },
+    { $project: { _client: 0 } },
+  ];
+
+  const docs = await Attendance.aggregate(pipeline);
+  return docs.map((d: Record<string, unknown>) => mapToAttendance(d));
 }
 
 export async function getAttendanceByDate(date: string): Promise<Attendance[]> {
-  await connectDB();
-  
-  // Auto-checkout any pending records before fetching
-  await autoCheckoutEndOfDay();
-  
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(date);
   endOfDay.setHours(23, 59, 59, 999);
-  
-  const attendance = await Attendance.find({
-    attendanceDate: {
-      $gte: startOfDay,
-      $lte: endOfDay,
-    },
-  })
-    .populate('clientId', 'firstName lastName clientId photoUrl')
-    .sort({ inTime: -1 })
-    .lean();
-  
-  return attendance.map(mapToAttendance);
+  return getAttendanceListAggregate({
+    attendanceDate: { $gte: startOfDay, $lte: endOfDay },
+  });
 }
 
 export async function addAttendance(attendanceData: {

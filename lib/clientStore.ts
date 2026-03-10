@@ -50,12 +50,14 @@ function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unkn
     if (!isNaN(id)) (base as Record<string, unknown>).clientId = id;
   }
 
+  // Name filter: matches first name, last name, or phone number (single search box)
   if (filters.name != null && String(filters.name).trim() !== '') {
     const term = String(filters.name).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const re = new RegExp(term, 'i');
     (base as Record<string, unknown>).$or = [
       { firstName: re },
       { lastName: re },
+      { phone: { $regex: term, $options: 'i' } },
     ];
   }
 

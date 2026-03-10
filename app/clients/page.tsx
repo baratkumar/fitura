@@ -53,10 +53,8 @@ export default function ClientsPage() {
   const [filterGym, setFilterGym] = useState<string>('')
   const [filterClientId, setFilterClientId] = useState('')
   const [filterName, setFilterName] = useState('')
-  const [filterPhone, setFilterPhone] = useState('')
   const [filterClientIdDebounced, setFilterClientIdDebounced] = useState('')
   const [filterNameDebounced, setFilterNameDebounced] = useState('')
-  const [filterPhoneDebounced, setFilterPhoneDebounced] = useState('')
   const [renewClient, setRenewClient] = useState<Client | null>(null)
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [renewing, setRenewing] = useState(false)
@@ -76,15 +74,14 @@ export default function ClientsPage() {
     const t = setTimeout(() => {
       setFilterClientIdDebounced(filterClientId)
       setFilterNameDebounced(filterName)
-      setFilterPhoneDebounced(filterPhone)
       setPage(1)
     }, SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(t)
-  }, [filterClientId, filterName, filterPhone])
+  }, [filterClientId, filterName])
 
   useEffect(() => {
     fetchClients()
-  }, [page, limit, filterGym, filterClientIdDebounced, filterNameDebounced, filterPhoneDebounced])
+  }, [page, limit, filterGym, filterClientIdDebounced, filterNameDebounced])
 
   useEffect(() => {
     if (renewClient) {
@@ -176,7 +173,6 @@ export default function ClientsPage() {
       if (filterGym.trim()) params.set('gym', filterGym.trim())
       if (filterClientIdDebounced.trim()) params.set('clientId', filterClientIdDebounced.trim())
       if (filterNameDebounced.trim()) params.set('name', filterNameDebounced.trim())
-      if (filterPhoneDebounced.trim()) params.set('phone', filterPhoneDebounced.trim())
       const response = await fetch(`/api/clients?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
@@ -384,7 +380,7 @@ export default function ClientsPage() {
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <div className="flex flex-col gap-2">
-                      <span>Name</span>
+                      <span>Name or phone</span>
                       <div className="relative">
                         <input
                           type="text"
@@ -540,18 +536,18 @@ export default function ClientsPage() {
               <Users className="w-24 h-24 text-gray-400" />
             </div>
             <h3 className="text-2xl font-semibold mb-2">
-              {filterClientId || filterName || filterPhone || filterGym ? 'No clients found' : 'No clients yet'}
+              {filterClientId || filterName || filterGym ? 'No clients found' : 'No clients yet'}
             </h3>
             <p className="text-gray-500 mb-6">
-              {filterClientId || filterName || filterPhone || filterGym
+              {filterClientId || filterName || filterGym
                 ? 'Try adjusting your filters or clear them to see all clients'
                 : 'Get started by registering your first client'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {(filterClientId || filterName || filterPhone || filterGym) && (
+              {(filterClientId || filterName || filterGym) && (
                 <button
                   type="button"
-                  onClick={() => { setFilterGym(''); setFilterClientId(''); setFilterName(''); setFilterPhone(''); setFilterClientIdDebounced(''); setFilterNameDebounced(''); setFilterPhoneDebounced(''); setPage(1); }}
+                  onClick={() => { setFilterGym(''); setFilterClientId(''); setFilterName(''); setFilterClientIdDebounced(''); setFilterNameDebounced(''); setPage(1); }}
                   className="text-fitura-blue hover:text-fitura-dark font-medium"
                 >
                   Clear filters

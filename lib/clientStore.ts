@@ -82,6 +82,9 @@ function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unkn
   return base;
 }
 
+const LIST_SELECT =
+  'clientId firstName lastName email phone photoUrl membershipType joiningDate expiryDate membershipFee discount paidAmount createdAt gym';
+
 export async function getClientsPaginated(
   page: number = 1,
   limit: number = 10,
@@ -92,51 +95,15 @@ export async function getClientsPaginated(
   const safeLimit = Math.min(100, Math.max(1, limit));
   const listFilter = buildListFilter(filters);
 
-  // Two parallel queries (list + count) often faster than one heavy $facet
-  const listPipeline: Record<string, unknown>[] = [
-    { $match: listFilter },
-    { $sort: { clientId: -1 } },
-    { $skip: skip },
-    { $limit: safeLimit },
-    {
-      $project: {
-        clientId: 1,
-        firstName: 1,
-        lastName: 1,
-        email: 1,
-        phone: 1,
-        photoUrl: 1,
-        membershipType: 1,
-        joiningDate: 1,
-        expiryDate: 1,
-        membershipFee: 1,
-        discount: 1,
-        paidAmount: 1,
-        createdAt: 1,
-        gym: 1,
-      },
-    },
-    {
-      $lookup: {
-        from: 'memberships',
-        localField: 'membershipType',
-        foreignField: '_id',
-        as: '_membership',
-      },
-    },
-    {
-      $addFields: {
-        membershipType: { $arrayElemAt: ['$_membership', 0] },
-      },
-    },
-    { $project: { _membership: 0 } },
-  ];
-
   const [docs, total] = await Promise.all([
-    Client.aggregate(listPipeline as unknown as mongoose.PipelineStage[], {
-      hint: { clientId: -1 },
-    }),
-    Client.countDocuments(listFilter),
+    Client.find(listFilter as mongoose.FilterQuery<unknown>)
+      .select(LIST_SELECT)
+      .sort({ clientId: -1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .populate('membershipType', 'name membershipId')
+      .lean(),
+    Client.countDocuments(listFilter as mongoose.FilterQuery<unknown>),
   ]);
 
   const mapped = docs

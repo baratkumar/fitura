@@ -45,6 +45,7 @@ export default function ClientsPage() {
   const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
@@ -166,6 +167,7 @@ export default function ClientsPage() {
 
   const fetchClients = async () => {
     setLoading(true)
+    setListError(null)
     try {
       const params = new URLSearchParams()
       params.set('page', String(page))
@@ -176,12 +178,16 @@ export default function ClientsPage() {
       const response = await fetch(`/api/clients?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
-        setClients(data.clients)
-        setTotal(data.total)
-        setTotalPages(data.totalPages)
+        setClients(data.clients ?? [])
+        setTotal(data.total ?? 0)
+        setTotalPages(data.totalPages ?? 0)
+      } else {
+        const err = await response.json().catch(() => ({}))
+        setListError(err.error || `Failed to fetch clients (${response.status})`)
       }
     } catch (error) {
       console.error('Error fetching clients:', error)
+      setListError('Failed to fetch clients. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -338,6 +344,19 @@ export default function ClientsPage() {
             </Link>
           </div>
       </div>
+
+      {listError && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-3">
+          <p className="text-amber-800 text-sm">{listError}</p>
+          <button
+            type="button"
+            onClick={() => fetchClients()}
+            className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {clients.length > 0 ? (
         <div className="bg-white rounded-xl shadow-lg overflow-hidden relative">

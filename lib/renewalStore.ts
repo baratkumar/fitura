@@ -96,32 +96,99 @@ function mapToRenewalType(renewal: any): RenewalType {
     ? membership.membershipId.toString()
     : membership?._id?.toString() || renewal.membershipType?.toString() || '';
 
+  const toIsoDateOnly = (value: unknown): string | undefined => {
+    if (!value) return undefined;
+    const date = value instanceof Date ? value : new Date(String(value));
+    if (Number.isNaN(date.getTime())) return undefined;
+    return date.toISOString().split('T')[0];
+  };
+
+  const toIsoDateTime = (value: unknown): string | undefined => {
+    if (!value) return undefined;
+    const date = value instanceof Date ? value : new Date(String(value));
+    if (Number.isNaN(date.getTime())) return undefined;
+    return date.toISOString();
+  };
+
   return {
     _id: renewal._id.toString(),
     clientId: renewal.clientId,
     membershipType: membershipId,
     membershipName: membership?.name,
-    joiningDate: renewal.joiningDate ? renewal.joiningDate.toISOString().split('T')[0] : undefined,
-    expiryDate: renewal.expiryDate ? renewal.expiryDate.toISOString().split('T')[0] : undefined,
+    joiningDate: toIsoDateOnly(renewal.joiningDate),
+    expiryDate: toIsoDateOnly(renewal.expiryDate),
     membershipFee: renewal.membershipFee,
     discount: renewal.discount,
     paidAmount: renewal.paidAmount,
-    paymentDate: renewal.paymentDate ? renewal.paymentDate.toISOString().split('T')[0] : undefined,
+    paymentDate: toIsoDateOnly(renewal.paymentDate),
     paymentMode: renewal.paymentMode,
     transactionId: renewal.transactionId,
-    createdAt: renewal.createdAt ? renewal.createdAt.toISOString() : new Date().toISOString(),
-    updatedAt: renewal.updatedAt ? renewal.updatedAt.toISOString() : undefined,
+    createdAt: toIsoDateTime(renewal.createdAt) || new Date().toISOString(),
+    updatedAt: toIsoDateTime(renewal.updatedAt),
   };
 }
 
 export async function getRenewalsForClient(clientId: number): Promise<RenewalType[]> {
   await connectDB();
-  const renewals = await Renewal.find({ clientId })
+  let renewals = await Renewal.find({ clientId })
     .populate('membershipType', 'name membershipId')
     .sort({ paymentDate: -1, createdAt: -1 })
     .lean();
 
-  return renewals.map(mapToRenewalType);
+  // Backfill a baseline renewal for legacy clients that predate renewals collection.
+  if (renewals.length === 0) {
+    const client = await Client.findOne({ clientId }).lean();
+    const rawMembership = client?.membershipType as
+      | mongoose.Types.ObjectId
+      | { _id?: mongoose.Types.ObjectId }
+      | string
+      | undefined;
+
+    let membershipObjectId: mongoose.Types.ObjectId | null = null;
+    if (rawMembership instanceof mongoose.Types.ObjectId) {
+      membershipObjectId = rawMembership;
+    } else if (
+      rawMembership &&
+      typeof rawMembership === 'object' &&
+      '_id' in rawMembership &&
+      rawMembership._id instanceof mongoose.Types.ObjectId
+    ) {
+      membershipObjectId = rawMembership._id;
+    } else if (typeof rawMembership === 'string' && rawMembership.length === 24) {
+      membershipObjectId = new mongoose.Types.ObjectId(rawMembership);
+    }
+
+    if (client && membershipObjectId) {
+      await Renewal.create({
+        clientId,
+        membershipType: membershipObjectId,
+        joiningDate: client.joiningDate,
+        expiryDate: client.expiryDate,
+        membershipFee: client.membershipFee,
+        discount: client.discount ?? 0,
+        paidAmount: client.paidAmount,
+        paymentDate: client.paymentDate,
+        paymentMode: client.paymentMode,
+        transactionId: client.transactionId,
+      });
+
+      renewals = await Renewal.find({ clientId })
+        .populate('membershipType', 'name membershipId')
+        .sort({ paymentDate: -1, createdAt: -1 })
+        .lean();
+    }
+  }
+
+  return renewals
+    .map((renewal) => {
+      try {
+        return mapToRenewalType(renewal);
+      } catch (error) {
+        console.error('Skipping invalid renewal record:', error);
+        return null;
+      }
+    })
+    .filter((renewal): renewal is RenewalType => renewal !== null);
 }
 
 export async function createRenewal(data: {

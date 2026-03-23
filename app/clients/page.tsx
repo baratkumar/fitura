@@ -497,7 +497,11 @@ export default function ClientsPage() {
                               {client.paidAmount !== undefined ? `₹${client.paidAmount.toFixed(2)}` : 'N/A'}
                             </span>
                             {client.paymentDate ? (
-                              <div className="text-xs text-gray-500 mt-0.5">Renewed</div>
+                              <div className="mt-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
+                                  Renewed
+                                </span>
+                              </div>
                             ) : null}
                           </div>
                         )

@@ -422,7 +422,7 @@ export default function ClientsPage() {
                     </div>
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Expiry Date</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Renewal Amount</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Membership</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Registered</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -492,9 +492,14 @@ export default function ClientsPage() {
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
                       {(() => {
                         return (
-                          <span className="text-gray-700 font-medium">
-                            {client.paidAmount !== undefined ? `₹${client.paidAmount.toFixed(2)}` : 'N/A'}
-                          </span>
+                          <div>
+                            <span className="text-gray-700 font-medium">
+                              {client.paidAmount !== undefined ? `₹${client.paidAmount.toFixed(2)}` : 'N/A'}
+                            </span>
+                            {client.paymentDate ? (
+                              <div className="text-xs text-gray-500 mt-0.5">Renewed</div>
+                            ) : null}
+                          </div>
                         )
                       })()}
                     </td>

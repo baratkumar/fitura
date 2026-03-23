@@ -83,7 +83,7 @@ function buildListFilter(filters?: ClientsPaginatedFilters): Record<string, unkn
 }
 
 const LIST_SELECT =
-  'clientId firstName lastName email phone photoUrl membershipType joiningDate expiryDate membershipFee discount paidAmount createdAt gym';
+  'clientId firstName lastName email phone photoUrl membershipType joiningDate expiryDate membershipFee discount paidAmount paymentDate createdAt gym';
 
 export async function getClientsPaginated(
   page: number = 1,

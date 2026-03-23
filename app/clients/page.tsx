@@ -422,7 +422,7 @@ export default function ClientsPage() {
                     </div>
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Expiry Date</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Renewal Amount</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Membership</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Registered</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -474,6 +474,11 @@ export default function ClientsPage() {
                       <div className="text-xs text-gray-600 mt-0.5">
                         {client.gym || 'Rival Fitness Studio I'}
                       </div>
+                      {client.paymentDate && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Renewed: {new Date(client.paymentDate).toLocaleDateString()}
+                        </div>
+                      )}
                       <div className="text-xs text-gray-500 md:hidden mt-1">
                         Expiry: {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
                       </div>
@@ -486,14 +491,8 @@ export default function ClientsPage() {
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
                       {(() => {
-                        const membershipFee = client.membershipFee || 0
-                        const discount = client.discount || 0
-                        const finalAmount = membershipFee - discount
-                        const paidAmount = client.paidAmount || 0
-                        const isLessThanFinal = paidAmount < finalAmount && finalAmount > 0
-                        
                         return (
-                          <span className={isLessThanFinal ? 'text-red-600 font-semibold' : 'text-gray-500'}>
+                          <span className="text-gray-700 font-medium">
                             {client.paidAmount !== undefined ? `₹${client.paidAmount.toFixed(2)}` : 'N/A'}
                           </span>
                         )

@@ -3,6 +3,7 @@ import connectDB from '@/lib/db';
 import Client from '@/lib/models/Client';
 import Attendance from '@/lib/models/Attendance';
 import Membership from '@/lib/models/Membership';
+import Renewal from '@/lib/models/Renewal';
 
 const APP_TIMEZONE = 'Asia/Kolkata';
 
@@ -51,11 +52,14 @@ export async function GET() {
     const [
       todayClients,
       weekClients,
+      todayRenewals,
+      weekRenewals,
       totalClients,
+      totalRenewalsRevenue,
       expiringClients,
       todayAttendance,
     ] = await Promise.all([
-      // Today's clients and revenue
+      // Today's newly registered clients
       Client.aggregate([
         {
           $match: {
@@ -66,11 +70,10 @@ export async function GET() {
           $group: {
             _id: null,
             count: { $sum: 1 },
-            revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
           },
         },
       ]),
-      // Current week clients and revenue
+      // Current week newly registered clients
       Client.aggregate([
         {
           $match: {
@@ -81,16 +84,51 @@ export async function GET() {
           $group: {
             _id: null,
             count: { $sum: 1 },
+          },
+        },
+      ]),
+      // Today's renewal revenue
+      Renewal.aggregate([
+        {
+          $match: {
+            paymentDate: { $gte: today, $lte: todayEnd },
+          },
+        },
+        {
+          $group: {
+            _id: null,
             revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
           },
         },
       ]),
-      // Total clients and overall revenue
+      // Current week renewal revenue
+      Renewal.aggregate([
+        {
+          $match: {
+            paymentDate: { $gte: weekStart, $lte: weekEnd },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
+          },
+        },
+      ]),
+      // Total clients
       Client.aggregate([
         {
           $group: {
             _id: null,
             count: { $sum: 1 },
+          },
+        },
+      ]),
+      // Overall renewal revenue
+      Renewal.aggregate([
+        {
+          $group: {
+            _id: null,
             revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
           },
         },
@@ -141,14 +179,14 @@ export async function GET() {
     ]);
 
     const stats = {
-      todayRevenue: todayClients[0]?.revenue || 0,
+      todayRevenue: todayRenewals[0]?.revenue || 0,
       todayClients: todayClients[0]?.count || 0,
       todayAttendance: todayAttendance,
       expiringClientsThisWeek: expiringClients[0]?.count || 0,
-      currentWeekRevenue: weekClients[0]?.revenue || 0,
+      currentWeekRevenue: weekRenewals[0]?.revenue || 0,
       currentWeekClients: weekClients[0]?.count || 0,
       totalClients: totalClients[0]?.count || 0,
-      overallRevenue: totalClients[0]?.revenue || 0,
+      overallRevenue: totalRenewalsRevenue[0]?.revenue || 0,
     };
 
     return NextResponse.json(stats);

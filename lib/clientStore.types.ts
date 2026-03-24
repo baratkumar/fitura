@@ -26,6 +26,7 @@ export interface Client {
   paymentMode?: string
   transactionId?: string
   paidAmount?: number
+  hasRenewal?: boolean
   emergencyContactName: string
   emergencyContactPhone: string
   medicalConditions?: string

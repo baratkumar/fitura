@@ -55,6 +55,7 @@ export async function GET() {
       todayRenewals,
       weekRenewals,
       totalClients,
+      totalClientsRevenue,
       totalRenewalsRevenue,
       expiringClients,
       todayAttendance,
@@ -124,6 +125,15 @@ export async function GET() {
           },
         },
       ]),
+      // Overall revenue from initial registrations (client paid amount)
+      Client.aggregate([
+        {
+          $group: {
+            _id: null,
+            revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
+          },
+        },
+      ]),
       // Overall renewal revenue
       Renewal.aggregate([
         {
@@ -186,7 +196,7 @@ export async function GET() {
       currentWeekRevenue: weekRenewals[0]?.revenue || 0,
       currentWeekClients: weekClients[0]?.count || 0,
       totalClients: totalClients[0]?.count || 0,
-      overallRevenue: totalRenewalsRevenue[0]?.revenue || 0,
+      overallRevenue: (totalClientsRevenue[0]?.revenue || 0) + (totalRenewalsRevenue[0]?.revenue || 0),
     };
 
     return NextResponse.json(stats);

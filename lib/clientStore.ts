@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import connectDB from './db';
 import Client from './models/Client';
 import Membership from './models/Membership';
+import Renewal from './models/Renewal';
 import { Client as ClientType } from './clientStore.types';
 
 export * from './clientStore.types';
@@ -117,8 +118,20 @@ export async function getClientsPaginated(
     })
     .filter((client): client is ClientType => client !== null && client.clientId >= 1);
 
+  const clientIds = mapped.map((client) => client.clientId);
+  const renewedClientIds = clientIds.length
+    ? await Renewal.distinct('clientId', {
+        clientId: { $in: clientIds },
+      })
+    : [];
+  const renewedSet = new Set<number>(renewedClientIds.map((id: unknown) => Number(id)));
+  const clientsWithRenewalFlag = mapped.map((client) => ({
+    ...client,
+    hasRenewal: renewedSet.has(client.clientId),
+  }));
+
   return {
-    clients: mapped,
+    clients: clientsWithRenewalFlag,
     total,
     page,
     limit: safeLimit,
@@ -638,6 +651,7 @@ function mapToClientType(client: any): ClientType {
     paymentMode: client.paymentMode,
     transactionId: client.transactionId,
     paidAmount: client.paidAmount,
+    hasRenewal: Boolean(client.hasRenewal),
     emergencyContactName: client.emergencyContactName,
     emergencyContactPhone: client.emergencyContactPhone,
     medicalConditions: client.medicalConditions,

@@ -31,6 +31,7 @@ interface Client {
   membershipFee?: number
   discount?: number
   paidAmount?: number
+  hasRenewal?: boolean
   joiningDate?: string
   paymentDate?: string
   paymentMode?: string
@@ -474,7 +475,7 @@ export default function ClientsPage() {
                       <div className="text-xs text-gray-600 mt-0.5">
                         {client.gym || 'Rival Fitness Studio I'}
                       </div>
-                      {client.paymentDate && (
+                      {client.hasRenewal && client.paymentDate && (
                         <div className="text-xs text-gray-500 mt-1">
                           Renewed: {new Date(client.paymentDate).toLocaleDateString()}
                         </div>
@@ -496,7 +497,7 @@ export default function ClientsPage() {
                             <span className="text-gray-700 font-medium">
                               {client.paidAmount !== undefined ? `₹${client.paidAmount.toFixed(2)}` : 'N/A'}
                             </span>
-                            {client.paymentDate ? (
+                            {client.hasRenewal ? (
                               <div className="mt-1">
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
                                   Renewed

@@ -52,6 +52,8 @@ export async function GET() {
     const [
       todayClients,
       weekClients,
+      todayClientsRevenue,
+      weekClientsRevenue,
       todayRenewals,
       weekRenewals,
       totalClients,
@@ -85,6 +87,34 @@ export async function GET() {
           $group: {
             _id: null,
             count: { $sum: 1 },
+          },
+        },
+      ]),
+      // Today's revenue from client documents (initial payments)
+      Client.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: today, $lte: todayEnd },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
+          },
+        },
+      ]),
+      // Current week revenue from client documents (initial payments)
+      Client.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: weekStart, $lte: weekEnd },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            revenue: { $sum: { $ifNull: ['$paidAmount', 0] } },
           },
         },
       ]),
@@ -189,11 +219,11 @@ export async function GET() {
     ]);
 
     const stats = {
-      todayRevenue: todayRenewals[0]?.revenue || 0,
+      todayRevenue: (todayClientsRevenue[0]?.revenue || 0) + (todayRenewals[0]?.revenue || 0),
       todayClients: todayClients[0]?.count || 0,
       todayAttendance: todayAttendance,
       expiringClientsThisWeek: expiringClients[0]?.count || 0,
-      currentWeekRevenue: weekRenewals[0]?.revenue || 0,
+      currentWeekRevenue: (weekClientsRevenue[0]?.revenue || 0) + (weekRenewals[0]?.revenue || 0),
       currentWeekClients: weekClients[0]?.count || 0,
       totalClients: totalClients[0]?.count || 0,
       overallRevenue: (totalClientsRevenue[0]?.revenue || 0) + (totalRenewalsRevenue[0]?.revenue || 0),

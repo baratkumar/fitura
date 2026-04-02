@@ -2,10 +2,24 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Users, Edit, Trash2, X, FileText, Clock, ArrowLeft } from 'lucide-react'
+import {
+  Users,
+  Edit,
+  Trash2,
+  X,
+  FileText,
+  Clock,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
+
+const PAGE_SIZES = [20, 50, 100]
 
 interface Client {
   clientId: number
@@ -30,23 +44,43 @@ interface Client {
 
 export default function ExpiringClientsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const gym = searchParams.get('gym') || ''
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(50)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null)
 
   useEffect(() => {
     fetchClients()
-  }, [])
+  }, [page, limit, gym])
 
   const fetchClients = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/clients/expiring')
+      const params = new URLSearchParams()
+      params.set('page', String(page))
+      params.set('limit', String(limit))
+      if (gym.trim()) params.set('gym', gym.trim())
+      const response = await fetch(`/api/clients/expiring?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
-        setClients(data)
+        setClients(data.clients ?? [])
+        setTotal(data.total ?? 0)
+        setTotalPages(data.totalPages ?? 0)
+      } else {
+        setClients([])
+        setTotal(0)
+        setTotalPages(0)
       }
     } catch (error) {
       console.error('Error fetching expiring clients:', error)
+      setClients([])
+      setTotal(0)
+      setTotalPages(0)
     } finally {
       setLoading(false)
     }
@@ -94,14 +128,19 @@ export default function ExpiringClientsPage() {
       <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <Link
-            href="/dashboard"
+            href={gym ? `/dashboard?gym=${encodeURIComponent(gym)}` : '/dashboard'}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2 text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Link>
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">Expiring Clients</h1>
-          <p className="text-gray-600 text-sm sm:text-base">Memberships expiring this week or next</p>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Memberships expiring in the current calendar month (IST)
+          </p>
+          {gym ? (
+            <p className="text-sm text-gray-500 mt-1">Gym: {gym}</p>
+          ) : null}
         </div>
         <Link
           href="/clients"
@@ -113,6 +152,25 @@ export default function ExpiringClientsPage() {
 
       {clients.length > 0 ? (
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="px-3 sm:px-6 py-3 border-b border-gray-100 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-gray-600">
+              Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
+            </span>
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value))
+                setPage(1)
+              }}
+              className="text-sm border border-gray-300 rounded-lg px-2 py-1"
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n} per page
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -234,16 +292,53 @@ export default function ExpiringClientsPage() {
               </tbody>
             </table>
           </div>
+          <div className="px-3 sm:px-6 py-4 border-t border-gray-200 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage(1)}
+              disabled={page <= 1}
+              className="p-2 rounded-lg border border-gray-300 disabled:opacity-40"
+            >
+              <ChevronsLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="p-2 rounded-lg border border-gray-300 disabled:opacity-40"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <span className="text-sm text-gray-600 px-2">
+              Page {page} of {totalPages || 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages || 1, p + 1))}
+              disabled={page >= (totalPages || 1)}
+              className="p-2 rounded-lg border border-gray-300 disabled:opacity-40"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage(totalPages || 1)}
+              disabled={page >= (totalPages || 1)}
+              className="p-2 rounded-lg border border-gray-300 disabled:opacity-40"
+            >
+              <ChevronsRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-lg p-12 text-center">
           <div className="mb-4 flex justify-center opacity-50">
             <Clock className="w-24 h-24 text-gray-400" />
           </div>
-          <h3 className="text-2xl font-semibold mb-2">No clients expiring this week</h3>
-          <p className="text-gray-500 mb-6">Memberships expiring in the next two weeks will appear here</p>
+          <h3 className="text-2xl font-semibold mb-2">No clients expiring this month</h3>
+          <p className="text-gray-500 mb-6">Clients with expiry in the current month will appear here</p>
           <Link
-            href="/dashboard"
+            href={gym ? `/dashboard?gym=${encodeURIComponent(gym)}` : '/dashboard'}
             className="bg-fitura-dark text-white px-6 py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors inline-block"
           >
             Back to Dashboard

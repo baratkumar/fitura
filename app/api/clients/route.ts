@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     if (pageParam !== null || limitParam !== null) {
       const page = Math.max(1, parseInt(pageParam || '1', 10) || 1)
-      const limit = Math.min(100, Math.max(1, parseInt(limitParam || '10', 10) || 10))
+      const limit = Math.min(100, Math.max(1, parseInt(limitParam || '50', 10) || 50))
       const clientId = searchParams.get('clientId') ?? undefined
       const name = searchParams.get('name') ?? undefined
       const phone = searchParams.get('phone') ?? undefined

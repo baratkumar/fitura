@@ -27,6 +27,8 @@ export interface Client {
   transactionId?: string
   paidAmount?: number
   hasRenewal?: boolean
+  /** Revenue attributed to this client for dashboard period lists */
+  periodRevenue?: number
   emergencyContactName: string
   emergencyContactPhone: string
   medicalConditions?: string

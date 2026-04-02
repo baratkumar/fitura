@@ -4,6 +4,15 @@ import Client from './models/Client';
 import Membership from './models/Membership';
 import Renewal from './models/Renewal';
 import { Client as ClientType } from './clientStore.types';
+import {
+  clientMatchWithGymAnd,
+  gymMatchOnNestedClient,
+} from './dashboardQueries';
+import {
+  getLastMonthRangeIST,
+  getThisMonthRangeIST,
+  getTodayRangeIST,
+} from './istCalendar';
 
 export * from './clientStore.types';
 
@@ -139,40 +148,10 @@ export async function getClientsPaginated(
   };
 }
 
-/** Get clients whose membership expires between today and end of next week (same as dashboard "Expiring This Week") */
-export async function getExpiringClients(): Promise<ClientType[]> {
-  await connectDB();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const weekStart = new Date(today);
-  const dayOfWeek = today.getDay();
-  const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-  weekStart.setDate(diff);
-  weekStart.setHours(0, 0, 0, 0);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
-  const nextWeekEnd = new Date(weekEnd);
-  nextWeekEnd.setDate(weekEnd.getDate() + 7);
-
-  const clients = await Client.find({
-    clientId: { $exists: true, $ne: null, $gte: 1 },
-    expiryDate: { $exists: true, $ne: null, $gte: today, $lte: nextWeekEnd },
-  })
-    .populate('membershipType', 'name membershipId')
-    .sort({ expiryDate: 1, clientId: 1 })
-    .lean();
-
-  return clients
-    .map(client => {
-      try {
-        return mapToClientType(client);
-      } catch (error) {
-        console.error('Skipping invalid client:', error);
-        return null;
-      }
-    })
-    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+/** @deprecated Prefer getClientsExpiringThisMonthPaginated. Clients expiring in the current calendar month (IST). */
+export async function getExpiringClients(gym?: string | null): Promise<ClientType[]> {
+  const { clients } = await getClientsExpiringThisMonthPaginated(1, 10000, gym);
+  return clients;
 }
 
 function getThisWeekDateRange(): { weekStart: Date; weekEnd: Date } {
@@ -661,6 +640,218 @@ function mapToClientType(client: any): ClientType {
     gym: client.gym || 'Rival Fitness Studio I',
     createdAt: client.createdAt ? client.createdAt.toISOString() : new Date().toISOString(),
     updatedAt: client.updatedAt ? client.updatedAt.toISOString() : undefined,
+    ...(client.periodRevenue != null ? { periodRevenue: Number(client.periodRevenue) } : {}),
+  };
+}
+
+export type DashboardRevenuePeriod = 'last-month' | 'this-month';
+
+export async function getDashboardRevenueClientsPaginated(
+  period: DashboardRevenuePeriod,
+  page: number = 1,
+  limit: number = 50,
+  gym?: string | null
+): Promise<ClientsPaginatedResult> {
+  await connectDB();
+  const { start, end } =
+    period === 'last-month' ? getLastMonthRangeIST() : getThisMonthRangeIST();
+  const skip = Math.max(0, (page - 1) * limit);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+
+  const regMatch = clientMatchWithGymAnd(gym, {
+    createdAt: { $gte: start, $lte: end },
+  });
+
+  const renewalPipeline: Record<string, unknown>[] = [
+    { $match: { paymentDate: { $gte: start, $lte: end } } },
+    {
+      $lookup: {
+        from: 'clients',
+        localField: 'clientId',
+        foreignField: 'clientId',
+        as: 'cl',
+      },
+    },
+    { $unwind: '$cl' },
+  ];
+  if (String(gym || '').trim()) {
+    renewalPipeline.push({ $match: gymMatchOnNestedClient('cl', gym) });
+  }
+  renewalPipeline.push({
+    $project: { clientId: 1, amt: { $ifNull: ['$paidAmount', 0] } },
+  });
+
+  const facetResult = await Client.aggregate([
+    { $match: regMatch as mongoose.FilterQuery<unknown> },
+    { $project: { clientId: 1, amt: { $ifNull: ['$paidAmount', 0] } } },
+    { $unionWith: { coll: 'renewals', pipeline: renewalPipeline } },
+    { $group: { _id: '$clientId', periodRevenue: { $sum: '$amt' } } },
+    { $sort: { _id: -1 } },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: safeLimit }],
+        totalCount: [{ $count: 'c' }],
+      },
+    },
+  ] as unknown as mongoose.PipelineStage[]);
+
+  const fr = facetResult[0] as {
+    data: { _id: number; periodRevenue: number }[];
+    totalCount: { c: number }[];
+  };
+  const total = fr?.totalCount?.[0]?.c ?? 0;
+  const rows = fr?.data ?? [];
+  const ids = rows.map((r) => r._id);
+
+  if (ids.length === 0) {
+    return {
+      clients: [],
+      total,
+      page,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit) || 1,
+    };
+  }
+
+  const renewedClientIds = await Renewal.distinct('clientId', {
+    clientId: { $in: ids },
+  });
+  const renewedSet = new Set<number>(renewedClientIds.map((id: unknown) => Number(id)));
+
+  const clientsRaw = await Client.find({ clientId: { $in: ids } })
+    .populate('membershipType', 'name membershipId')
+    .select(LIST_SELECT)
+    .lean();
+
+  const revMap = new Map(rows.map((r) => [r._id, r.periodRevenue]));
+  const orderMap = new Map(ids.map((id, i) => [id, i]));
+  (clientsRaw as any[]).sort(
+    (a, b) => (orderMap.get(a.clientId) ?? 0) - (orderMap.get(b.clientId) ?? 0)
+  );
+
+  const mapped = (clientsRaw as any[])
+    .map((doc) => {
+      try {
+        return mapToClientType({
+          ...doc,
+          hasRenewal: renewedSet.has(doc.clientId),
+          periodRevenue: revMap.get(doc.clientId) ?? 0,
+        });
+      } catch (error) {
+        console.error('Skipping invalid client:', error);
+        return null;
+      }
+    })
+    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+
+  return {
+    clients: mapped,
+    total,
+    page,
+    limit: safeLimit,
+    totalPages: Math.ceil(total / safeLimit) || 1,
+  };
+}
+
+export async function getClientsTodayExpiryPaginated(
+  page: number = 1,
+  limit: number = 50,
+  gym?: string | null
+): Promise<ClientsPaginatedResult> {
+  await connectDB();
+  const { start, end } = getTodayRangeIST();
+  const match = clientMatchWithGymAnd(gym, { expiryDate: { $gte: start, $lte: end } });
+  const skip = Math.max(0, (page - 1) * limit);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+
+  const [docs, total] = await Promise.all([
+    Client.find(match as mongoose.FilterQuery<unknown>)
+      .select(LIST_SELECT)
+      .sort({ clientId: -1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .populate('membershipType', 'name membershipId')
+      .lean(),
+    Client.countDocuments(match as mongoose.FilterQuery<unknown>),
+  ]);
+
+  const clientIds = docs.map((d: any) => d.clientId);
+  const renewedClientIds = clientIds.length
+    ? await Renewal.distinct('clientId', { clientId: { $in: clientIds } })
+    : [];
+  const renewedSet = new Set<number>(renewedClientIds.map((id: unknown) => Number(id)));
+
+  const mapped = docs
+    .map((client: Record<string, unknown>) => {
+      try {
+        return mapToClientType({
+          ...client,
+          hasRenewal: renewedSet.has((client as any).clientId),
+        });
+      } catch (error) {
+        console.error('Skipping invalid client:', error);
+        return null;
+      }
+    })
+    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+
+  return {
+    clients: mapped,
+    total,
+    page,
+    limit: safeLimit,
+    totalPages: Math.ceil(total / safeLimit) || 1,
+  };
+}
+
+export async function getClientsExpiringThisMonthPaginated(
+  page: number = 1,
+  limit: number = 50,
+  gym?: string | null
+): Promise<ClientsPaginatedResult> {
+  await connectDB();
+  const { start, end } = getThisMonthRangeIST();
+  const match = clientMatchWithGymAnd(gym, { expiryDate: { $gte: start, $lte: end } });
+  const skip = Math.max(0, (page - 1) * limit);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+
+  const [docs, total] = await Promise.all([
+    Client.find(match as mongoose.FilterQuery<unknown>)
+      .select(LIST_SELECT)
+      .sort({ expiryDate: 1, clientId: 1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .populate('membershipType', 'name membershipId')
+      .lean(),
+    Client.countDocuments(match as mongoose.FilterQuery<unknown>),
+  ]);
+
+  const clientIds = docs.map((d: any) => d.clientId);
+  const renewedClientIds = clientIds.length
+    ? await Renewal.distinct('clientId', { clientId: { $in: clientIds } })
+    : [];
+  const renewedSet = new Set<number>(renewedClientIds.map((id: unknown) => Number(id)));
+
+  const mapped = docs
+    .map((client: Record<string, unknown>) => {
+      try {
+        return mapToClientType({
+          ...client,
+          hasRenewal: renewedSet.has((client as any).clientId),
+        });
+      } catch (error) {
+        console.error('Skipping invalid client:', error);
+        return null;
+      }
+    })
+    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+
+  return {
+    clients: mapped,
+    total,
+    page,
+    limit: safeLimit,
+    totalPages: Math.ceil(total / safeLimit) || 1,
   };
 }
 

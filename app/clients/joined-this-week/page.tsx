@@ -19,7 +19,7 @@ import PageLoader from '@/components/PageLoader'
 import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
 
-const PAGE_SIZES = [10, 20, 50, 100]
+const PAGE_SIZES = [20, 50, 100]
 
 interface Client {
   clientId: number
@@ -47,7 +47,7 @@ export default function JoinedThisWeekPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [limit, setLimit] = useState(50)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null)

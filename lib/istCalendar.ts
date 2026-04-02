@@ -14,6 +14,15 @@ export function istYmd(d: Date = new Date()): string {
   return d.toLocaleDateString('en-CA', { timeZone: APP_TIMEZONE });
 }
 
+/** Calendar year in Asia/Kolkata for an instant (avoids server-local getFullYear drift). */
+export function getISTCalendarYear(d: Date): number {
+  return parseInt(istYmd(d).split('-')[0], 10);
+}
+
+export function getCurrentISTCalendarYear(ref: Date = new Date()): number {
+  return getISTCalendarYear(ref);
+}
+
 export function getTodayRangeIST(ref: Date = new Date()): { start: Date; end: Date } {
   const dateStr = ref.toLocaleDateString('en-CA', { timeZone: APP_TIMEZONE });
   return {

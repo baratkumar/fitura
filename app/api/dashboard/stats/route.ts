@@ -12,13 +12,14 @@ import {
   getThisMonthRangeIST,
   getLastMonthRangeIST,
   getYearRangeIST,
+  getCurrentISTCalendarYear,
 } from '@/lib/dashboardQueries';
 
 export async function GET(request: NextRequest) {
   try {
     const gym = request.nextUrl.searchParams.get('gym')?.trim() || undefined;
     const yearParam = request.nextUrl.searchParams.get('year');
-    const cy = new Date().getFullYear();
+    const cy = getCurrentISTCalendarYear();
     const revenueYear = Math.min(
       cy + 1,
       Math.max(1970, parseInt(yearParam || String(cy), 10) || cy)

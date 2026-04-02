@@ -17,6 +17,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
+import { getCurrentISTCalendarYear } from '@/lib/istCalendar'
 
 const GYMS = [
   { value: '', label: 'All gyms' },
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [gym, setGym] = useState('')
-  const [revenueYear, setRevenueYear] = useState(() => new Date().getFullYear())
+  const [revenueYear, setRevenueYear] = useState(() => getCurrentISTCalendarYear())
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -359,7 +360,8 @@ export default function Dashboard() {
             {stats ? formatCurrency(stats.overallRevenue) : '₹0'}
           </p>
           <p className="text-xs text-gray-500 mt-2">
-            Registration + renewal payments in {stats?.revenueYear ?? revenueYear} (IST calendar year)
+            IST {stats?.revenueYear ?? revenueYear}: renewal payments by payment date, plus first payment for
+            members with no renewal row yet (avoids double-counting).
           </p>
         </div>
       </div>

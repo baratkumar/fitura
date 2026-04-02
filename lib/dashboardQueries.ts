@@ -8,6 +8,8 @@ import {
   getThisMonthRangeIST,
   getLastMonthRangeIST,
   getYearRangeIST,
+  getISTCalendarYear,
+  getCurrentISTCalendarYear,
 } from './istCalendar';
 
 const clientListFilter = { clientId: { $exists: true, $ne: null, $gte: 1 } };
@@ -60,17 +62,34 @@ export function gymMatchOnNestedClient(
   return { [`${p}gym`]: g };
 }
 
-export async function sumRegistrationRevenueInRange(
+/**
+ * Sum paidAmount for clients created in [start,end] who have **no** renewal documents yet.
+ * Avoids double-counting once a baseline renewal is backfilled from the client record.
+ */
+export async function sumOrphanRegistrationRevenueInRange(
   start: Date,
   end: Date,
   gym?: string | null
 ): Promise<number> {
   await connectDB();
   const match = clientMatchWithGymAnd(gym, { createdAt: { $gte: start, $lte: end } });
-  const r = await Client.aggregate([
-    { $match: match },
+  const pipeline: mongoose.PipelineStage[] = [
+    { $match: match as mongoose.FilterQuery<unknown> },
+    {
+      $lookup: {
+        from: 'renewals',
+        let: { cid: '$clientId' },
+        pipeline: [
+          { $match: { $expr: { $eq: ['$clientId', '$$cid'] } } },
+          { $limit: 1 },
+        ],
+        as: '_hasRenewal',
+      },
+    },
+    { $match: { _hasRenewal: { $size: 0 } } },
     { $group: { _id: null, revenue: { $sum: { $ifNull: ['$paidAmount', 0] } } } },
-  ]);
+  ];
+  const r = await Client.aggregate(pipeline);
   return r[0]?.revenue || 0;
 }
 
@@ -103,14 +122,15 @@ export async function sumRenewalRevenueInRange(
   return r[0]?.revenue || 0;
 }
 
+/** Renewal payments in range + new members not yet represented in renewals collection. */
 export async function combinedRevenueInRange(
   start: Date,
   end: Date,
   gym?: string | null
 ): Promise<number> {
   const [a, b] = await Promise.all([
-    sumRegistrationRevenueInRange(start, end, gym),
     sumRenewalRevenueInRange(start, end, gym),
+    sumOrphanRegistrationRevenueInRange(start, end, gym),
   ]);
   return a + b;
 }
@@ -169,13 +189,22 @@ export async function getDashboardAvailableYears(): Promise<number[]> {
     Client.aggregate([{ $group: { _id: null, min: { $min: '$createdAt' } } }]),
     Renewal.aggregate([{ $group: { _id: null, min: { $min: '$paymentDate' } } }]),
   ]);
-  const cy = new Date().getFullYear();
+  const cy = getCurrentISTCalendarYear();
   let minY = cy;
-  if (c[0]?.min) minY = Math.min(minY, new Date(c[0].min as Date).getFullYear());
-  if (r[0]?.min) minY = Math.min(minY, new Date(r[0].min as Date).getFullYear());
+  if (c[0]?.min) minY = Math.min(minY, getISTCalendarYear(new Date(c[0].min as Date)));
+  if (r[0]?.min) {
+    const pd = r[0].min as Date;
+    if (!Number.isNaN(pd.getTime())) minY = Math.min(minY, getISTCalendarYear(new Date(pd)));
+  }
   const years: number[] = [];
   for (let y = cy; y >= minY; y--) years.push(y);
   return years;
 }
 
-export { getTodayRangeIST, getThisMonthRangeIST, getLastMonthRangeIST, getYearRangeIST };
+export {
+  getTodayRangeIST,
+  getThisMonthRangeIST,
+  getLastMonthRangeIST,
+  getYearRangeIST,
+  getCurrentISTCalendarYear,
+};

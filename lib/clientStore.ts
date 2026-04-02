@@ -401,6 +401,7 @@ export async function addClient(clientData: Omit<ClientType, 'clientId' | 'creat
   if (clientData.firstTimeInGym) clientDataToSave.firstTimeInGym = clientData.firstTimeInGym;
   if (clientData.previousGymDetails) clientDataToSave.previousGymDetails = clientData.previousGymDetails;
   
+  // Registration payment lives on Client only; renewals are added later via POST /api/renewals (never here).
   // Use create() instead of new + save() to ensure all fields are properly saved
   let savedClient;
   try {

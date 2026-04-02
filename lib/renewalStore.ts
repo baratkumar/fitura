@@ -128,56 +128,16 @@ function mapToRenewalType(renewal: any): RenewalType {
   };
 }
 
+/**
+ * List renewals for a client. New client registration does not create renewal rows;
+ * payments are stored on the Client record until an admin adds a renewal via POST /api/renewals.
+ */
 export async function getRenewalsForClient(clientId: number): Promise<RenewalType[]> {
   await connectDB();
-  let renewals = await Renewal.find({ clientId })
+  const renewals = await Renewal.find({ clientId })
     .populate('membershipType', 'name membershipId')
     .sort({ paymentDate: -1, createdAt: -1 })
     .lean();
-
-  // Backfill a baseline renewal for legacy clients that predate renewals collection.
-  if (renewals.length === 0) {
-    const client = await Client.findOne({ clientId }).lean();
-    const rawMembership = client?.membershipType as
-      | mongoose.Types.ObjectId
-      | { _id?: mongoose.Types.ObjectId }
-      | string
-      | undefined;
-
-    let membershipObjectId: mongoose.Types.ObjectId | null = null;
-    if (rawMembership instanceof mongoose.Types.ObjectId) {
-      membershipObjectId = rawMembership;
-    } else if (
-      rawMembership &&
-      typeof rawMembership === 'object' &&
-      '_id' in rawMembership &&
-      rawMembership._id instanceof mongoose.Types.ObjectId
-    ) {
-      membershipObjectId = rawMembership._id;
-    } else if (typeof rawMembership === 'string' && rawMembership.length === 24) {
-      membershipObjectId = new mongoose.Types.ObjectId(rawMembership);
-    }
-
-    if (client && membershipObjectId) {
-      await Renewal.create({
-        clientId,
-        membershipType: membershipObjectId,
-        joiningDate: client.joiningDate,
-        expiryDate: client.expiryDate,
-        membershipFee: client.membershipFee,
-        discount: client.discount ?? 0,
-        paidAmount: client.paidAmount,
-        paymentDate: client.paymentDate,
-        paymentMode: client.paymentMode,
-        transactionId: client.transactionId,
-      });
-
-      renewals = await Renewal.find({ clientId })
-        .populate('membershipType', 'name membershipId')
-        .sort({ paymentDate: -1, createdAt: -1 })
-        .lean();
-    }
-  }
 
   return renewals
     .map((renewal) => {
@@ -290,6 +250,79 @@ export async function updateRenewal(
   }
 
   return mapToRenewalType(populated);
+}
+
+/** Same calendar day in UTC for date-only payment comparisons. */
+function sameUtcDay(a: Date, b: Date): boolean {
+  return a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
+}
+
+/**
+ * Deletes renewals whose `paymentDate` matches the client's `paymentDate` (same UTC day).
+ * If the client still has other renewals, syncs membership from the latest renewal.
+ * If none remain, leaves the Client document unchanged (signup payment stays on the client).
+ */
+export async function deleteRenewalsMatchingClientPaymentDate(): Promise<{
+  deleted: number;
+  affectedClientIds: number[];
+}> {
+  await connectDB();
+  const clients = await Client.find({}).select('clientId paymentDate').lean();
+  let deleted = 0;
+  const affected = new Set<number>();
+
+  for (const c of clients) {
+    const cid = c.clientId;
+    if (cid == null || cid < 1) continue;
+    const cpRaw = (c as { paymentDate?: Date }).paymentDate;
+    if (!cpRaw) continue;
+    const cp = new Date(cpRaw);
+    if (Number.isNaN(cp.getTime())) continue;
+
+    const renewals = await Renewal.find({ clientId: cid }).select('_id paymentDate').lean();
+    for (const r of renewals) {
+      if (!r.paymentDate) continue;
+      const rp = new Date(r.paymentDate as Date);
+      if (!sameUtcDay(cp, rp)) continue;
+
+      await Renewal.deleteOne({ _id: r._id });
+      deleted++;
+      affected.add(cid);
+    }
+  }
+
+  for (const clientId of Array.from(affected)) {
+    const remaining = await Renewal.countDocuments({ clientId });
+    if (remaining > 0) {
+      await syncClientFromRenewals(clientId);
+    }
+  }
+
+  return { deleted, affectedClientIds: Array.from(affected) };
+}
+
+export async function countRenewalsMatchingClientPaymentDate(): Promise<number> {
+  await connectDB();
+  const clients = await Client.find({}).select('clientId paymentDate').lean();
+  let n = 0;
+
+  for (const c of clients) {
+    const cid = c.clientId;
+    if (cid == null || cid < 1) continue;
+    const cpRaw = (c as { paymentDate?: Date }).paymentDate;
+    if (!cpRaw) continue;
+    const cp = new Date(cpRaw);
+    if (Number.isNaN(cp.getTime())) continue;
+
+    const renewals = await Renewal.find({ clientId: cid }).select('paymentDate').lean();
+    for (const r of renewals) {
+      if (!r.paymentDate) continue;
+      const rp = new Date(r.paymentDate as Date);
+      if (sameUtcDay(cp, rp)) n++;
+    }
+  }
+
+  return n;
 }
 
 export async function deleteRenewal(id: string): Promise<boolean> {

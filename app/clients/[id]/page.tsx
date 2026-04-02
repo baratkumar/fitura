@@ -566,7 +566,10 @@ export default function ViewClientPage() {
             {renewalsLoading ? (
               <p className="text-sm text-gray-500">Loading renewals...</p>
             ) : renewals.length === 0 ? (
-              <p className="text-sm text-gray-500">No renewals recorded for this client.</p>
+              <p className="text-sm text-gray-500">
+                No renewal rows yet. Current membership and payment are shown in Membership above. Add a
+                renewal from the clients list (Renew) when you record a new payment.
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">

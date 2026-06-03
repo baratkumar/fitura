@@ -65,6 +65,43 @@ To get this token:
 3. Create a blob store
 4. Copy the `BLOB_READ_WRITE_TOKEN` from the store settings
 
+## Optional: WhatsApp Cloud API
+
+If you want to send WhatsApp messages from your API:
+```
+WHATSAPP_PHONE_NUMBER_ID=your_meta_phone_number_id
+WHATSAPP_ACCESS_TOKEN=your_meta_access_token
+```
+
+How to get these values:
+1. Open your Meta Developer App and go to WhatsApp > API Setup
+2. Copy the `Phone number ID`
+3. Generate or copy a permanent access token for your app/system user
+4. Optional but recommended for scheduled jobs:
+```
+CRON_SECRET=your_long_random_secret
+```
+
+Endpoint added in this project:
+- `POST /api/whatsapp/send`
+- Body:
+```
+{
+  "to": "919876543210",
+  "message": "Hello from Fitura",
+  "previewUrl": false
+}
+```
+
+Scheduled job endpoint (for daily cron):
+- `GET /api/jobs/absent-reminders` (or `POST`)
+- Optional query: `thresholdDays=3`
+- If `CRON_SECRET` is set, pass either:
+  - Header: `Authorization: Bearer <CRON_SECRET>`
+  - Or query: `?key=<CRON_SECRET>`
+- This repo includes `vercel.json` cron config using:
+  - `/api/jobs/absent-reminders?thresholdDays=3&key=$CRON_SECRET`
+
 ## Quick Setup Checklist
 
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` added to Vercel

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Clock, CheckCircle2, AlertCircle, X } from 'lucide-react'
+import ClientAvatar from '@/components/ClientAvatar'
 
 interface ClientInfo {
   clientId: string
@@ -292,22 +293,14 @@ export default function AttendancePage() {
 
             {/* Client Photo */}
             <div className="flex justify-center mb-4">
-              {successData.client.photoUrl ? (
-                <img
-                  src={successData.client.photoUrl}
-                  alt={`${successData.client.firstName} ${successData.client.lastName}`}
-                  className="w-[350px] h-[350px] object-cover rounded-lg border-4 border-green-200 shadow-lg"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              ) : (
-                <div className="w-[350px] h-[350px] bg-gray-200 rounded-lg border-4 border-green-200 shadow-lg flex items-center justify-center">
-                  <span className="text-gray-400 text-6xl font-semibold">
-                    {successData.client.firstName?.[0] || successData.client.clientId[0] || '?'}
-                  </span>
-                </div>
-              )}
+              <ClientAvatar
+                photoUrl={successData.client.photoUrl}
+                firstName={successData.client.firstName}
+                lastName={successData.client.lastName}
+                clientId={successData.client.clientId}
+                size="hero"
+                className="border-green-200 shadow-lg"
+              />
             </div>
 
             {/* Client Name */}

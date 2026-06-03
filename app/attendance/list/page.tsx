@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Clock, Trash2, Plus, X, Users, Loader2 } from 'lucide-react'
+import { Clock, Trash2, Plus, X, Loader2 } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
+import ClientNameWithAvatar from '@/components/ClientNameWithAvatar'
+import ClientPhotoModal from '@/components/ClientPhotoModal'
 
 const SEARCH_DEBOUNCE_MS = 2500
 
@@ -187,8 +189,7 @@ export default function AttendanceListPage() {
                       </div>
                     </div>
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client Name</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <div className="flex flex-col gap-2">
                       <span>Date</span>
@@ -228,41 +229,25 @@ export default function AttendanceListPage() {
                 {attendance.map((record) => (
                   <tr key={record.id} className="hover:bg-gray-50">
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">{record.clientId}</td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="relative">
-                        {record.photoUrl ? (
-                          <img
-                            src={record.photoUrl}
-                            alt={record.clientName || 'Client'}
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => setSelectedImage({
-                              url: record.photoUrl!,
-                              name: record.clientName || `Client ID: ${record.clientId}`
-                            })}
-                            onError={(e) => {
-                              // Hide image and show fallback on error
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              const parent = target.parentElement
-                              if (parent) {
-                                const fallback = parent.querySelector('.avatar-fallback') as HTMLElement
-                                if (fallback) fallback.style.display = 'flex'
-                              }
-                            }}
-                          />
-                        ) : null}
-                        <div
-                          className={`avatar-fallback w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-fitura-blue/10 flex items-center justify-center ${record.photoUrl ? 'hidden' : ''}`}
-                        >
-                          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-fitura-blue" />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 text-sm font-semibold text-gray-900">
-                      <div className="flex flex-col">
-                        <span>{record.clientName || 'N/A'}</span>
+                    <td className="px-3 sm:px-6 py-4">
+                      <ClientNameWithAvatar
+                        photoUrl={record.photoUrl}
+                        firstName={record.clientName || 'N/A'}
+                        lastName=""
+                        clientId={record.clientId}
+                        nameClassName="text-sm font-semibold text-gray-900"
+                        onPhotoClick={
+                          record.photoUrl
+                            ? () =>
+                                setSelectedImage({
+                                  url: record.photoUrl!,
+                                  name: record.clientName || `Client ID: ${record.clientId}`,
+                                })
+                            : undefined
+                        }
+                      >
                         <span className="text-xs text-gray-500 sm:hidden">ID: {record.clientId}</span>
-                      </div>
+                      </ClientNameWithAvatar>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex flex-col">
@@ -347,41 +332,12 @@ export default function AttendanceListPage() {
         </div>
       )}
 
-      {/* Image Popup Modal */}
       {selectedImage && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <div 
-            className="relative max-w-4xl max-h-[90vh] w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 transition-colors z-10"
-              aria-label="Close modal"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            
-            {/* Image */}
-            <img
-              src={selectedImage.url}
-              alt={selectedImage.name}
-              className="w-full h-auto rounded-lg shadow-2xl object-contain max-h-[90vh]"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-            
-            {/* Client Name */}
-            <div className="absolute bottom-4 left-4 right-4 bg-black/60 text-white px-4 py-2 rounded-lg">
-              <p className="text-lg font-semibold">{selectedImage.name}</p>
-            </div>
-          </div>
-        </div>
+        <ClientPhotoModal
+          url={selectedImage.url}
+          name={selectedImage.name}
+          onClose={() => setSelectedImage(null)}
+        />
       )}
     </div>
   )

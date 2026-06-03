@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   DollarSign,
-  Users,
   CheckCircle,
   Clock,
   TrendingUp,
@@ -15,8 +14,12 @@ import {
   X,
   AlertCircle,
   CheckCircle2,
+  UserPlus,
+  BadgeCheck,
+  UserX,
 } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
+import ClientAvatar from '@/components/ClientAvatar'
 import { getCurrentISTCalendarYear } from '@/lib/istCalendar'
 
 const GYMS = [
@@ -33,6 +36,9 @@ interface DashboardStats {
   expiringThisMonth: number
   todayAttendance: number
   totalClients: number
+  joinedThisWeek: number
+  activeMemberships: number
+  lapsedMemberships: number
   overallRevenue: number
   revenueYear: number
   availableYears: number[]
@@ -61,6 +67,9 @@ export default function Dashboard() {
     duration?: string
     clientName: string
     clientId: string
+    firstName?: string
+    lastName?: string
+    photoUrl?: string
     expiryDate?: string
   } | null>(null)
 
@@ -162,11 +171,17 @@ export default function Dashboard() {
       }
       let expiryDate: string | undefined
       let clientName = `Client ${attForm.clientId}`
+      let firstName: string | undefined
+      let lastName: string | undefined
+      let photoUrl: string | undefined
       const cr = await fetch(`/api/clients/${attForm.clientId}`)
       if (cr.ok) {
         const c = await cr.json()
+        firstName = c.firstName
+        lastName = c.lastName
         clientName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || clientName
         expiryDate = c.expiryDate
+        photoUrl = c.photoUrl
       }
       setAttSuccess({
         status: data.status || 'IN',
@@ -175,6 +190,9 @@ export default function Dashboard() {
         duration: data.duration,
         clientName,
         clientId: attForm.clientId,
+        firstName,
+        lastName,
+        photoUrl,
         expiryDate,
       })
       setAttForm((prev) => ({ ...prev, clientId: '' }))
@@ -187,6 +205,8 @@ export default function Dashboard() {
   }
 
   const gq = gymQuery(gym)
+  const clientsListHref =
+    gym.trim() !== '' ? `/clients?gym=${encodeURIComponent(gym.trim())}` : '/clients'
   const yearOptions = useMemo(() => {
     const base =
       stats?.availableYears?.length && stats.availableYears.length > 0
@@ -333,6 +353,51 @@ export default function Dashboard() {
           <p className="text-3xl font-bold text-gray-900">{stats?.totalClients ?? 0}</p>
         </div>
 
+        <Link
+          href="/clients/joined-this-week"
+          className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer block"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-emerald-600 text-white p-3 rounded-lg">
+              <UserPlus className="w-6 h-6" />
+            </div>
+          </div>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">New this week</h3>
+          <p className="text-3xl font-bold text-gray-900">{stats?.joinedThisWeek ?? 0}</p>
+          <p className="text-xs text-gray-500 mt-1">Joined Mon–Sun (created)</p>
+          <p className="text-xs text-fitura-blue mt-2">View list →</p>
+        </Link>
+
+        <Link
+          href={clientsListHref}
+          className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer block"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-teal-600 text-white p-3 rounded-lg">
+              <BadgeCheck className="w-6 h-6" />
+            </div>
+          </div>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Active memberships</h3>
+          <p className="text-3xl font-bold text-gray-900">{stats?.activeMemberships ?? 0}</p>
+          <p className="text-xs text-gray-500 mt-1">Expiry on or after today (IST)</p>
+          <p className="text-xs text-fitura-blue mt-2">Open clients →</p>
+        </Link>
+
+        <Link
+          href={clientsListHref}
+          className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer block"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="bg-slate-500 text-white p-3 rounded-lg">
+              <UserX className="w-6 h-6" />
+            </div>
+          </div>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Lapsed memberships</h3>
+          <p className="text-3xl font-bold text-gray-900">{stats?.lapsedMemberships ?? 0}</p>
+          <p className="text-xs text-gray-500 mt-1">Expiry before today (IST)</p>
+          <p className="text-xs text-fitura-blue mt-2">Open clients →</p>
+        </Link>
+
         <div className="bg-white rounded-xl shadow-lg p-6 md:col-span-2 lg:col-span-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
@@ -450,6 +515,16 @@ export default function Dashboard() {
                     <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                       <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
+                  </div>
+                  <div className="flex justify-center mb-4">
+                    <ClientAvatar
+                      photoUrl={attSuccess.photoUrl}
+                      firstName={attSuccess.firstName}
+                      lastName={attSuccess.lastName}
+                      clientId={attSuccess.clientId}
+                      size="hero"
+                      className="border-green-200 shadow-lg mx-auto"
+                    />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{attSuccess.clientName}</h3>
                   <p className="text-sm text-gray-500 mb-4">ID: {attSuccess.clientId}</p>

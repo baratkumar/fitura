@@ -159,6 +159,50 @@ export async function countExpiringThisMonth(gym?: string | null): Promise<numbe
   return Client.countDocuments(match as mongoose.FilterQuery<unknown>);
 }
 
+/** Monday–Sunday week in server local time (matches joined-this-week list). */
+function getThisWeekDateRangeLocal(): { weekStart: Date; weekEnd: Date } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weekStart = new Date(today);
+  const dayOfWeek = today.getDay();
+  const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  weekStart.setDate(diff);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+  return { weekStart, weekEnd };
+}
+
+export async function countJoinedThisWeekWithGym(gym?: string | null): Promise<number> {
+  await connectDB();
+  const { weekStart, weekEnd } = getThisWeekDateRangeLocal();
+  const match = clientMatchWithGymAnd(gym, {
+    createdAt: { $gte: weekStart, $lte: weekEnd },
+  });
+  return Client.countDocuments(match as mongoose.FilterQuery<unknown>);
+}
+
+/** Membership expiry on or after start of today (IST). */
+export async function countActiveMembershipsWithGym(gym?: string | null): Promise<number> {
+  await connectDB();
+  const { start } = getTodayRangeIST();
+  const match = clientMatchWithGymAnd(gym, {
+    expiryDate: { $gte: start },
+  });
+  return Client.countDocuments(match as mongoose.FilterQuery<unknown>);
+}
+
+/** Had a membership expiry before today (IST). */
+export async function countLapsedMembershipsWithGym(gym?: string | null): Promise<number> {
+  await connectDB();
+  const { start } = getTodayRangeIST();
+  const match = clientMatchWithGymAnd(gym, {
+    expiryDate: { $lt: start, $exists: true, $ne: null },
+  });
+  return Client.countDocuments(match as mongoose.FilterQuery<unknown>);
+}
+
 export async function countTodayAttendanceWithGym(gym?: string | null): Promise<number> {
   await connectDB();
   const { start, end } = getTodayRangeIST();

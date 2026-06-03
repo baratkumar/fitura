@@ -16,6 +16,8 @@ import {
   ChevronsRight,
 } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
+import ClientNameWithAvatar from '@/components/ClientNameWithAvatar'
+import ClientPhotoModal from '@/components/ClientPhotoModal'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
 
@@ -175,9 +177,7 @@ export default function ExpiringClientsPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Expiry Date</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Membership</th>
@@ -188,51 +188,33 @@ export default function ExpiringClientsPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {clients.map((client) => (
                   <tr key={client.clientId} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.clientId}</td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="relative">
-                        {client.photoUrl ? (
-                          <img
-                            src={client.photoUrl}
-                            alt={`${client.firstName} ${client.lastName}`}
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => setSelectedImage({
-                              url: client.photoUrl!,
-                              name: `${client.firstName} ${client.lastName}`
-                            })}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              const parent = target.parentElement
-                              if (parent) {
-                                const fallback = parent.querySelector('.avatar-fallback') as HTMLElement
-                                if (fallback) fallback.style.display = 'flex'
-                              }
-                            }}
-                          />
-                        ) : null}
-                        <div
-                          className={`avatar-fallback w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-fitura-blue/10 flex items-center justify-center ${client.photoUrl ? 'hidden' : ''}`}
-                        >
-                          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-fitura-blue" />
-                        </div>
-                      </div>
-                    </td>
                     <td className="px-3 sm:px-6 py-4">
-                      <Link
+                      <ClientNameWithAvatar
+                        photoUrl={client.photoUrl}
+                        firstName={client.firstName}
+                        lastName={client.lastName}
+                        clientId={client.clientId}
                         href={`/clients/${client.clientId}`}
-                        className="text-sm font-semibold text-gray-900 hover:text-fitura-blue transition-colors cursor-pointer block"
+                        onPhotoClick={
+                          client.photoUrl
+                            ? () =>
+                                setSelectedImage({
+                                  url: client.photoUrl!,
+                                  name: `${client.firstName} ${client.lastName}`,
+                                })
+                            : undefined
+                        }
                       >
-                        {client.firstName} {client.lastName}
-                      </Link>
-                      <div className="text-xs text-gray-500">{client.email}</div>
-                      <div className="text-xs text-gray-500">{client.phone}</div>
-                      <div className="text-xs text-gray-500 md:hidden mt-1">
-                        Expiry: {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
-                      </div>
-                      <div className="text-xs text-gray-500 lg:hidden md:block mt-1">
-                        {client.membershipName || 'N/A'}
-                      </div>
+                        <div className="text-xs text-gray-500">ID: {client.clientId}</div>
+                        <div className="text-xs text-gray-500">{client.email}</div>
+                        <div className="text-xs text-gray-500">{client.phone}</div>
+                        <div className="text-xs text-gray-500 md:hidden mt-1">
+                          Expiry: {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500 lg:hidden md:block mt-1">
+                          {client.membershipName || 'N/A'}
+                        </div>
+                      </ClientNameWithAvatar>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-orange-600 font-medium hidden md:table-cell">
                       {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
@@ -347,34 +329,11 @@ export default function ExpiringClientsPage() {
       )}
 
       {selectedImage && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <div
-            className="relative max-w-4xl max-h-[90vh] w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 transition-colors z-10"
-              aria-label="Close modal"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img
-              src={selectedImage.url}
-              alt={selectedImage.name}
-              className="w-full h-auto rounded-lg shadow-2xl object-contain max-h-[90vh]"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-            <div className="absolute bottom-4 left-4 right-4 bg-black/60 text-white px-4 py-2 rounded-lg">
-              <p className="text-lg font-semibold">{selectedImage.name}</p>
-            </div>
-          </div>
-        </div>
+        <ClientPhotoModal
+          url={selectedImage.url}
+          name={selectedImage.name}
+          onClose={() => setSelectedImage(null)}
+        />
       )}
     </div>
   )

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
+import ClientNameWithAvatar from '@/components/ClientNameWithAvatar'
 
 const VALID_TYPES = [
   'last-month-revenue',
@@ -21,6 +22,7 @@ interface Row {
   lastName: string
   email?: string
   phone: string
+  photoUrl?: string
   expiryDate?: string
   membershipName?: string
   paidAmount?: number
@@ -144,8 +146,7 @@ export default function DashboardClientsListPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                   {showPeriodRevenue ? (
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -159,15 +160,18 @@ export default function DashboardClientsListPage() {
               <tbody className="divide-y divide-gray-200">
                 {clients.map((c) => (
                   <tr key={c.clientId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{c.clientId}</td>
                     <td className="px-4 py-3">
-                      <Link
+                      <ClientNameWithAvatar
+                        photoUrl={c.photoUrl}
+                        firstName={c.firstName}
+                        lastName={c.lastName}
+                        clientId={c.clientId}
                         href={`/clients/${c.clientId}`}
-                        className="font-semibold text-fitura-blue hover:underline"
+                        nameClassName="font-semibold text-fitura-blue hover:underline"
                       >
-                        {c.firstName} {c.lastName}
-                      </Link>
-                      {c.email ? <div className="text-xs text-gray-500">{c.email}</div> : null}
+                        <div className="text-xs text-gray-500">ID: {c.clientId}</div>
+                        {c.email ? <div className="text-xs text-gray-500">{c.email}</div> : null}
+                      </ClientNameWithAvatar>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{c.phone}</td>
                     {showPeriodRevenue ? (

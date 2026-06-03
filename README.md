@@ -160,6 +160,11 @@ fitura/
 ### Database
 - `GET /api/init-db` - Initialize database tables and default data
 
+### WhatsApp
+- `POST /api/whatsapp/send` - Send a WhatsApp text message using Meta WhatsApp Cloud API
+- `GET /api/jobs/absent-reminders` - Trigger absence reminder job (default: send after 3 absent days)
+- Vercel cron is configured in `vercel.json` to run daily at `03:30 UTC` (`09:00 IST`)
+
 ## Development
 
 ### Build for Production

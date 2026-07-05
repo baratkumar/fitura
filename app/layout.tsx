@@ -12,8 +12,9 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
-  title: 'Fitura',
-  description: 'A modern fitness log application',
+  title: 'Fitura — Gym Management Software',
+  description:
+    'Manage clients, memberships, attendance, and revenue for your fitness studio — all in one place.',
 }
 
 export default function RootLayout({

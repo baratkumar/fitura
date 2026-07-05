@@ -1,21 +1,45 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Zap, Home, LayoutDashboard, Users, Settings, LogOut, Clock } from 'lucide-react'
 import { useAuth } from './AuthProvider'
 
+const SCROLL_THRESHOLD = 24
+
 export default function Navbar() {
   const { isAuthenticated, logout } = useAuth()
   const pathname = usePathname()
+  const isHome = pathname === '/'
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    if (!isHome) return
+
+    const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [isHome])
 
   // Don't show navbar on login page
   if (pathname === '/login') {
     return null
   }
 
+  const showSolidHeader = !isHome || scrolled
+
   return (
-    <nav className="bg-fitura-dark text-white shadow-lg">
+    <nav
+      className={`text-white transition-all duration-300 ${
+        isHome ? 'fixed top-0 left-0 right-0 z-50' : ''
+      } ${
+        showSolidHeader
+          ? 'bg-fitura-dark shadow-lg'
+          : 'bg-transparent shadow-none'
+      }`}
+    >
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="text-xl sm:text-2xl font-bold hover:text-fitura-purple-300 transition-colors flex items-center gap-2">

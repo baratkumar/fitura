@@ -856,6 +856,60 @@ export async function getClientsExpiringThisMonthPaginated(
   };
 }
 
+/** Membership expiry before today (IST). */
+export async function getClientsLapsedPaginated(
+  page: number = 1,
+  limit: number = 50,
+  gym?: string | null
+): Promise<ClientsPaginatedResult> {
+  await connectDB();
+  const { start } = getTodayRangeIST();
+  const match = clientMatchWithGymAnd(gym, {
+    expiryDate: { $lt: start, $exists: true, $ne: null },
+  });
+  const skip = Math.max(0, (page - 1) * limit);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+
+  const [docs, total] = await Promise.all([
+    Client.find(match as mongoose.FilterQuery<unknown>)
+      .select(LIST_SELECT)
+      .sort({ expiryDate: -1, clientId: 1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .populate('membershipType', 'name membershipId')
+      .lean(),
+    Client.countDocuments(match as mongoose.FilterQuery<unknown>),
+  ]);
+
+  const clientIds = docs.map((d: any) => d.clientId);
+  const renewedClientIds = clientIds.length
+    ? await Renewal.distinct('clientId', { clientId: { $in: clientIds } })
+    : [];
+  const renewedSet = new Set<number>(renewedClientIds.map((id: unknown) => Number(id)));
+
+  const mapped = docs
+    .map((client: Record<string, unknown>) => {
+      try {
+        return mapToClientType({
+          ...client,
+          hasRenewal: renewedSet.has((client as any).clientId),
+        });
+      } catch (error) {
+        console.error('Skipping invalid client:', error);
+        return null;
+      }
+    })
+    .filter((client): client is ClientType => client !== null && client.clientId >= 1);
+
+  return {
+    clients: mapped,
+    total,
+    page,
+    limit: safeLimit,
+    totalPages: Math.ceil(total / safeLimit) || 1,
+  };
+}
+
 /**
  * Set gym to "Rival Fitness Studio I" for all clients that don't have gym set.
  * Run once to migrate existing data.

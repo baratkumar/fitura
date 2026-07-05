@@ -384,7 +384,7 @@ export default function Dashboard() {
         </Link>
 
         <Link
-          href={clientsListHref}
+          href={`/clients/lapsed${gq}`}
           className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer block"
         >
           <div className="flex items-center justify-between mb-4">
@@ -395,7 +395,7 @@ export default function Dashboard() {
           <h3 className="text-sm font-medium text-gray-600 mb-2">Lapsed memberships</h3>
           <p className="text-3xl font-bold text-gray-900">{stats?.lapsedMemberships ?? 0}</p>
           <p className="text-xs text-gray-500 mt-1">Expiry before today (IST)</p>
-          <p className="text-xs text-fitura-blue mt-2">Open clients →</p>
+          <p className="text-xs text-fitura-blue mt-2">View list →</p>
         </Link>
 
         <div className="bg-white rounded-xl shadow-lg p-6 md:col-span-2 lg:col-span-2">

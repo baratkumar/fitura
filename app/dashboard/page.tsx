@@ -205,8 +205,6 @@ export default function Dashboard() {
   }
 
   const gq = gymQuery(gym)
-  const clientsListHref =
-    gym.trim() !== '' ? `/clients?gym=${encodeURIComponent(gym.trim())}` : '/clients'
   const yearOptions = useMemo(() => {
     const base =
       stats?.availableYears?.length && stats.availableYears.length > 0
@@ -369,7 +367,7 @@ export default function Dashboard() {
         </Link>
 
         <Link
-          href={clientsListHref}
+          href={`/clients/active${gq}`}
           className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer block"
         >
           <div className="flex items-center justify-between mb-4">
@@ -380,7 +378,7 @@ export default function Dashboard() {
           <h3 className="text-sm font-medium text-gray-600 mb-2">Active memberships</h3>
           <p className="text-3xl font-bold text-gray-900">{stats?.activeMemberships ?? 0}</p>
           <p className="text-xs text-gray-500 mt-1">Expiry on or after today (IST)</p>
-          <p className="text-xs text-fitura-blue mt-2">Open clients →</p>
+          <p className="text-xs text-fitura-blue mt-2">View list →</p>
         </Link>
 
         <Link

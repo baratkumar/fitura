@@ -6,6 +6,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
 import ClientNameWithAvatar from '@/components/ClientNameWithAvatar'
+import ClientPhotoModal from '@/components/ClientPhotoModal'
 
 const VALID_TYPES = [
   'last-month-revenue',
@@ -60,6 +61,7 @@ export default function DashboardClientsListPage() {
 
   const [clients, setClients] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -168,6 +170,15 @@ export default function DashboardClientsListPage() {
                         clientId={c.clientId}
                         href={`/clients/${c.clientId}`}
                         nameClassName="font-semibold text-fitura-blue hover:underline"
+                        onPhotoClick={
+                          c.photoUrl
+                            ? () =>
+                                setSelectedImage({
+                                  url: c.photoUrl!,
+                                  name: `${c.firstName} ${c.lastName}`,
+                                })
+                            : undefined
+                        }
                       >
                         <div className="text-xs text-gray-500">ID: {c.clientId}</div>
                         {c.email ? <div className="text-xs text-gray-500">{c.email}</div> : null}
@@ -235,6 +246,14 @@ export default function DashboardClientsListPage() {
           </div>
         </div>
       )}
+
+      {selectedImage ? (
+        <ClientPhotoModal
+          url={selectedImage.url}
+          name={selectedImage.name}
+          onClose={() => setSelectedImage(null)}
+        />
+      ) : null}
     </div>
   )
 }

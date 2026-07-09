@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Clock, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import ClientAvatar from '@/components/ClientAvatar'
+import MembershipRenewalCard from '@/components/MembershipRenewalCard'
 
 interface ClientInfo {
   clientId: string
   firstName: string
   lastName: string
   photoUrl?: string
+  expiryDate?: string
 }
 
 interface SuccessData {
@@ -116,6 +118,7 @@ export default function AttendancePage() {
             firstName: clientData.firstName,
             lastName: clientData.lastName,
             photoUrl: clientData.photoUrl,
+            expiryDate: clientData.expiryDate,
           }
         }
         
@@ -326,6 +329,11 @@ export default function AttendancePage() {
               >
                 {successData.status === 'IN' ? '✓ Checked IN' : '✓ Checked OUT'}
               </span>
+            </div>
+
+            {/* Membership renewal */}
+            <div className="mb-4">
+              <MembershipRenewalCard expiryDate={successData.client.expiryDate} />
             </div>
 
             {/* Time Information */}

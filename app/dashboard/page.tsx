@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
 import ClientAvatar from '@/components/ClientAvatar'
+import MembershipRenewalCard from '@/components/MembershipRenewalCard'
 import { getCurrentISTCalendarYear } from '@/lib/istCalendar'
 
 const GYMS = [
@@ -533,21 +534,9 @@ export default function Dashboard() {
                   >
                     {attSuccess.status === 'IN' ? 'Checked IN' : 'Checked OUT'}
                   </span>
-                  {attSuccess.expiryDate ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-left">
-                      <p className="text-xs font-semibold text-amber-800 uppercase">Membership expiry</p>
-                      <p className="text-lg font-bold text-gray-900">
-                        {new Date(attSuccess.expiryDate).toLocaleDateString('en-IN', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 mb-4">No expiry date on file for this client.</p>
-                  )}
+                  <div className="mb-4">
+                    <MembershipRenewalCard expiryDate={attSuccess.expiryDate} />
+                  </div>
                   <button
                     type="button"
                     onClick={() => {

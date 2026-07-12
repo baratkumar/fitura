@@ -3,9 +3,13 @@ import connectDB from './db'
 import Client from './models/Client'
 import Renewal from './models/Renewal'
 import Attendance from './models/Attendance'
+import Membership from './models/Membership'
 import { clientMatchWithGymAnd, gymMatchOnNestedClient } from './dashboardQueries'
 import { istYmd } from './istCalendar'
 import mongoose from 'mongoose'
+
+// Ensure Membership schema is registered for Client/Renewal populate()
+void Membership
 
 export const REPORT_TYPES = [
   'monthly',

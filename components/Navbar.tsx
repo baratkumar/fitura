@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Zap, Home, LayoutDashboard, Users, Settings, LogOut, Clock } from 'lucide-react'
+import { Zap, Home, LayoutDashboard, Users, Settings, LogOut, Clock, FileSpreadsheet } from 'lucide-react'
 import { useAuth } from './AuthProvider'
 
 const SCROLL_THRESHOLD = 24
@@ -85,6 +85,13 @@ export default function Navbar() {
                 >
                   <Clock className="w-4 h-4" />
                   <span className="hidden sm:inline">Attendance</span>
+                </Link>
+                <Link 
+                  href="/reports" 
+                  className="hover:text-fitura-purple-300 transition-colors font-medium flex items-center gap-1 sm:gap-2 text-sm sm:text-base whitespace-nowrap"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span className="hidden sm:inline">Reports</span>
                 </Link>
                 <Link 
                   href="/settings" 

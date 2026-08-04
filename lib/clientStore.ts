@@ -475,21 +475,6 @@ export async function addClient(clientData: Omit<ClientType, 'clientId' | 'creat
   return mapToClientType(savedClient);
 }
 
-export async function deleteClient(id: string): Promise<boolean> {
-  await connectDB();
-  // Try to find by clientId first (if it's a number), otherwise try MongoDB _id
-  const clientId = parseInt(id);
-  let result;
-  
-  if (!isNaN(clientId) && clientId > 0 && clientId < 100000) {
-    result = await Client.findOneAndDelete({ clientId });
-  } else {
-    result = await Client.findByIdAndDelete(id);
-  }
-  
-  return !!result;
-}
-
 export async function updateClient(id: string, clientData: Partial<ClientType>): Promise<ClientType | null> {
   await connectDB();
   

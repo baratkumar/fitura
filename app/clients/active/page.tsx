@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Edit,
-  Trash2,
   FileText,
   BadgeCheck,
   ArrowLeft,
@@ -92,23 +91,6 @@ export default function ActiveClientsPage() {
 
   const handleEdit = (clientId: number) => {
     router.push(`/clients/${clientId}/edit`)
-  }
-
-  const handleDelete = async (clientId: number) => {
-    if (!confirm('Are you sure you want to delete this client?')) return
-
-    try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        setClients(clients.filter((client) => client.clientId !== clientId))
-        setTotal((prev) => prev - 1)
-      }
-    } catch (error) {
-      console.error('Error deleting client:', error)
-    }
   }
 
   const isPaidClient = (client: Client) => {
@@ -269,13 +251,6 @@ export default function ActiveClientsPage() {
                           title="Edit"
                         >
                           <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(client.clientId)}
-                          className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </div>
                     </td>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Users, Edit, Trash2, X, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Loader2 } from 'lucide-react'
+import { Users, Edit, X, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Loader2 } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
 import ClientNameWithAvatar from '@/components/ClientNameWithAvatar'
 import ClientPhotoModal from '@/components/ClientPhotoModal'
@@ -199,27 +199,6 @@ export default function ClientsPage() {
 
   const handleEdit = (clientId: number) => {
     router.push(`/clients/${clientId}/edit`)
-  }
-
-  const handleDelete = async (clientId: number) => {
-    if (!confirm('Are you sure you want to delete this client?')) return
-
-    try {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        const remaining = clients.filter(client => client.clientId !== clientId)
-        setClients(remaining)
-        setTotal(prev => prev - 1)
-        if (remaining.length === 0 && page > 1) {
-          setPage(p => Math.max(1, p - 1))
-        }
-      }
-    } catch (error) {
-      console.error('Error deleting client:', error)
-    }
   }
 
   const startItem = total === 0 ? 0 : (page - 1) * limit + 1
@@ -523,13 +502,6 @@ export default function ClientsPage() {
                           title="Edit"
                         >
                           <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(client.clientId)}
-                          className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </div>
                     </td>

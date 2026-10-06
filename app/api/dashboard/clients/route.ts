@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
     );
 
     switch (type) {
+      case 'today-revenue':
+        return NextResponse.json(
+          await getDashboardRevenueClientsPaginated('today', page, limit, gym)
+        );
       case 'last-month-revenue':
         return NextResponse.json(
           await getDashboardRevenueClientsPaginated('last-month', page, limit, gym)

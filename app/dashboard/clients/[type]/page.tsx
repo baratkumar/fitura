@@ -9,6 +9,7 @@ import ClientNameWithAvatar from '@/components/ClientNameWithAvatar'
 import ClientPhotoModal from '@/components/ClientPhotoModal'
 
 const VALID_TYPES = [
+  'today-revenue',
   'last-month-revenue',
   'this-month-revenue',
   'today-expiry',
@@ -31,6 +32,10 @@ interface Row {
 }
 
 const TITLES: Record<ValidType, { title: string; subtitle: string }> = {
+  'today-revenue': {
+    title: "Today's revenue",
+    subtitle: 'Clients who registered or renewed today (IST)',
+  },
   'last-month-revenue': {
     title: 'Last month revenue',
     subtitle: 'Clients who registered or renewed in the previous calendar month (IST)',
@@ -115,7 +120,10 @@ export default function DashboardClientsListPage() {
 
   const meta = TITLES[type]
   const showPeriodRevenue =
-    type === 'last-month-revenue' || type === 'this-month-revenue'
+    type === 'today-revenue' ||
+    type === 'last-month-revenue' ||
+    type === 'this-month-revenue'
+  const revenueColumnLabel = type === 'today-revenue' ? 'Paid today' : 'Period revenue'
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -152,7 +160,7 @@ export default function DashboardClientsListPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                   {showPeriodRevenue ? (
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Period revenue
+                      {revenueColumnLabel}
                     </th>
                   ) : null}
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expiry</th>

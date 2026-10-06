@@ -249,7 +249,10 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <Link
+          href={`/dashboard/clients/today-revenue${gq}`}
+          className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer block"
+        >
           <div className="flex items-center justify-between mb-4">
             <div className="bg-fitura-blue text-white p-3 rounded-lg">
               <DollarSign className="w-6 h-6" />
@@ -259,7 +262,8 @@ export default function Dashboard() {
           <p className="text-3xl font-bold text-gray-900">
             {stats ? formatCurrency(stats.todayRevenue) : '₹0'}
           </p>
-        </div>
+          <p className="text-xs text-fitura-blue mt-2">View who paid →</p>
+        </Link>
 
         <Link
           href={`/dashboard/clients/last-month-revenue${gq}`}

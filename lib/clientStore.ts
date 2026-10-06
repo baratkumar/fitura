@@ -630,7 +630,13 @@ function mapToClientType(client: any): ClientType {
   };
 }
 
-export type DashboardRevenuePeriod = 'last-month' | 'this-month';
+export type DashboardRevenuePeriod = 'today' | 'last-month' | 'this-month';
+
+function rangeForRevenuePeriod(period: DashboardRevenuePeriod): { start: Date; end: Date } {
+  if (period === 'today') return getTodayRangeIST();
+  if (period === 'last-month') return getLastMonthRangeIST();
+  return getThisMonthRangeIST();
+}
 
 export async function getDashboardRevenueClientsPaginated(
   period: DashboardRevenuePeriod,
@@ -639,8 +645,7 @@ export async function getDashboardRevenueClientsPaginated(
   gym?: string | null
 ): Promise<ClientsPaginatedResult> {
   await connectDB();
-  const { start, end } =
-    period === 'last-month' ? getLastMonthRangeIST() : getThisMonthRangeIST();
+  const { start, end } = rangeForRevenuePeriod(period);
   const skip = Math.max(0, (page - 1) * limit);
   const safeLimit = Math.min(100, Math.max(1, limit));
 

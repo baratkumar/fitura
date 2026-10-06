@@ -35,9 +35,11 @@ export default function Navbar() {
       className={`text-white transition-all duration-300 ${
         isHome ? 'fixed top-0 left-0 right-0 z-50' : ''
       } ${
-        showSolidHeader
-          ? 'bg-fitura-dark shadow-lg'
-          : 'bg-transparent shadow-none'
+        !showSolidHeader
+          ? 'bg-transparent shadow-none'
+          : isHome
+          ? 'border-b border-white/10 bg-fitura-night/80 shadow-lg backdrop-blur-xl'
+          : 'bg-fitura-dark shadow-lg'
       }`}
     >
       <div className="container mx-auto px-4">

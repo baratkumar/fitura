@@ -13,6 +13,7 @@ const config: Config = {
       },
       colors: {
         'fitura': {
+          'night': '#07071a', // Deepest background — landing page base
           'dark': '#1a1b3d', // Dark purplish-blue/indigo background
           'blue': {
             DEFAULT: '#2563eb', // Deep rich blue (primary)
@@ -60,6 +61,25 @@ const config: Config = {
         'gradient-conic':
           'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
         'gradient-fitura': 'linear-gradient(135deg, #2563eb 0%, #9333ea 50%, #ec4899 100%)',
+      },
+      keyframes: {
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        'grow-bar': {
+          from: { transform: 'scaleY(0)' },
+          to: { transform: 'scaleY(1)' },
+        },
+      },
+      animation: {
+        'fade-up': 'fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'fade-in': 'fade-in 1.2s ease-out both',
+        'grow-bar': 'grow-bar 0.9s cubic-bezier(0.16, 1, 0.3, 1) both',
       },
     },
   },

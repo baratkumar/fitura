@@ -22,6 +22,22 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Fades a decorative layer out towards the bottom so it never meets a hard edge. */
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Smooth scrolling */

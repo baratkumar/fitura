@@ -3,6 +3,7 @@ import connectDB from './db';
 import Client from './models/Client';
 import Membership from './models/Membership';
 import Renewal from './models/Renewal';
+import { attachBalances } from './balancePayments';
 import { Client as ClientType } from './clientStore.types';
 import {
   clientMatchWithGymAnd,
@@ -138,9 +139,10 @@ export async function getClientsPaginated(
     ...client,
     hasRenewal: renewedSet.has(client.clientId),
   }));
+  const clientsWithBalance = await attachBalances(clientsWithRenewalFlag);
 
   return {
-    clients: clientsWithRenewalFlag,
+    clients: clientsWithBalance,
     total,
     page,
     limit: safeLimit,
@@ -672,10 +674,30 @@ export async function getDashboardRevenueClientsPaginated(
     $project: { clientId: 1, amt: { $ifNull: ['$paidAmount', 0] } },
   });
 
+  const paymentPipeline: Record<string, unknown>[] = [
+    { $match: { paymentDate: { $gte: start, $lte: end } } },
+    {
+      $lookup: {
+        from: 'clients',
+        localField: 'clientId',
+        foreignField: 'clientId',
+        as: 'cl',
+      },
+    },
+    { $unwind: '$cl' },
+  ];
+  if (String(gym || '').trim()) {
+    paymentPipeline.push({ $match: gymMatchOnNestedClient('cl', gym) });
+  }
+  paymentPipeline.push({
+    $project: { clientId: 1, amt: { $ifNull: ['$amount', 0] } },
+  });
+
   const facetResult = await Client.aggregate([
     { $match: regMatch as mongoose.FilterQuery<unknown> },
     { $project: { clientId: 1, amt: { $ifNull: ['$paidAmount', 0] } } },
     { $unionWith: { coll: 'renewals', pipeline: renewalPipeline } },
+    { $unionWith: { coll: 'payments', pipeline: paymentPipeline } },
     { $group: { _id: '$clientId', periodRevenue: { $sum: '$amt' } } },
     { $sort: { _id: -1 } },
     {

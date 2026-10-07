@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx'
 import connectDB from './db'
 import Client from './models/Client'
 import Renewal from './models/Renewal'
+import Payment from './models/Payment'
 import Attendance from './models/Attendance'
 import Membership from './models/Membership'
 import { clientMatchWithGymAnd, gymMatchOnNestedClient } from './dashboardQueries'
@@ -249,6 +250,42 @@ async function buildRenewalsReport(filters: ReportFilters): Promise<{ buffer: Bu
       'Payment Date': formatDateCell(c.paymentDate),
       'Payment Mode': c.paymentMode || '',
       'Transaction ID': c.transactionId || '',
+    })
+  }
+
+  const paymentPipeline: mongoose.PipelineStage[] = [
+    { $match: { paymentDate: { $gte: start, $lte: end } } },
+    {
+      $lookup: {
+        from: 'clients',
+        localField: 'clientId',
+        foreignField: 'clientId',
+        as: 'cl',
+      },
+    },
+    { $unwind: { path: '$cl', preserveNullAndEmptyArrays: true } },
+  ]
+  if (gym) {
+    paymentPipeline.push({ $match: gymMatchOnNestedClient('cl', gym) as Record<string, unknown> })
+  }
+  paymentPipeline.push({ $sort: { paymentDate: 1, clientId: 1 } })
+  const balancePayments = await Payment.aggregate(paymentPipeline)
+  for (const p of balancePayments as any[]) {
+    rows.push({
+      'Client ID': p.clientId,
+      'First Name': p.cl?.firstName || '',
+      'Last Name': p.cl?.lastName || '',
+      Phone: p.cl?.phone || '',
+      Gym: p.cl?.gym || 'Rival Fitness Studio I',
+      Membership: 'Balance payment',
+      'Joining Date': '',
+      'Expiry Date': '',
+      'Membership Fee': '',
+      Discount: '',
+      'Paid Amount': formatMoney(p.amount),
+      'Payment Date': formatDateCell(p.paymentDate),
+      'Payment Mode': p.paymentMode || '',
+      'Transaction ID': p.transactionId || '',
     })
   }
 

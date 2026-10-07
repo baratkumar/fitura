@@ -9,6 +9,7 @@ import ClientPhotoModal from '@/components/ClientPhotoModal'
 import ClientAvatar from '@/components/ClientAvatar'
 import { useRouter } from 'next/navigation'
 import { openReceiptPrint } from '@/lib/receipt'
+import BalancePaymentModal from '@/components/BalancePaymentModal'
 
 const PAGE_SIZES = [20, 50, 100]
 const SEARCH_DEBOUNCE_MS = 400
@@ -34,6 +35,8 @@ interface Client {
   membershipFee?: number
   discount?: number
   paidAmount?: number
+  totalPaid?: number
+  balanceDue?: number
   hasRenewal?: boolean
   joiningDate?: string
   paymentDate?: string
@@ -61,6 +64,7 @@ export default function ClientsPage() {
   const [filterClientIdDebounced, setFilterClientIdDebounced] = useState('')
   const [filterNameDebounced, setFilterNameDebounced] = useState('')
   const [renewClient, setRenewClient] = useState<Client | null>(null)
+  const [updateClient, setUpdateClient] = useState<Client | null>(null)
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [renewing, setRenewing] = useState(false)
   const [renewForm, setRenewForm] = useState({
@@ -453,22 +457,25 @@ export default function ClientsPage() {
                       {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">
-                      {(() => {
-                        return (
-                          <div>
-                            <span className="text-gray-700 font-medium">
-                              {client.paidAmount !== undefined ? `₹${client.paidAmount.toFixed(2)}` : 'N/A'}
-                            </span>
-                            {client.hasRenewal ? (
-                              <div className="mt-1">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
-                                  Renewed
-                                </span>
-                              </div>
-                            ) : null}
+                      <div>
+                        <span className="text-gray-700 font-medium">
+                          {(client.totalPaid ?? client.paidAmount) !== undefined
+                            ? `₹${(client.totalPaid ?? client.paidAmount)!.toFixed(2)}`
+                            : 'N/A'}
+                        </span>
+                        {client.balanceDue && client.balanceDue > 0 ? (
+                          <div className="text-xs font-semibold text-red-600 mt-1">
+                            Due ₹{client.balanceDue.toFixed(2)}
                           </div>
-                        )
-                      })()}
+                        ) : null}
+                        {client.hasRenewal ? (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
+                              Renewed
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-fitura-purple-100 text-fitura-purple-800">
@@ -489,6 +496,13 @@ export default function ClientsPage() {
                             <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                           </button>
                         )}
+                        <button
+                          onClick={() => setUpdateClient(client)}
+                          className="text-xs font-semibold text-fitura-blue hover:text-fitura-magenta px-1.5 py-1 rounded hover:bg-fitura-blue/10"
+                          title="Record a later payment toward the balance"
+                        >
+                          Update
+                        </button>
                         <button
                           onClick={() => setRenewClient(client)}
                           className="text-amber-600 hover:text-amber-800 transition-colors p-1 rounded hover:bg-amber-50"
@@ -547,6 +561,17 @@ export default function ClientsPage() {
           {paginationBar}
         </div>
       )}
+
+      {updateClient ? (
+        <BalancePaymentModal
+          clientId={updateClient.clientId}
+          firstName={updateClient.firstName}
+          lastName={updateClient.lastName}
+          photoUrl={updateClient.photoUrl}
+          onClose={() => setUpdateClient(null)}
+          onSaved={() => fetchClients()}
+        />
+      ) : null}
 
       {/* Renew Membership Modal */}
       {renewClient && (

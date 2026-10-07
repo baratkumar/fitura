@@ -26,6 +26,12 @@ export interface Client {
   paymentMode?: string
   transactionId?: string
   paidAmount?: number
+  /** First payment plus later amounts recorded with Update payment. */
+  totalPaid?: number
+  /** Extra amounts paid after the first payment, for the current membership. */
+  installmentPaid?: number
+  /** Charge still left on the current membership. */
+  balanceDue?: number
   hasRenewal?: boolean
   /** Revenue attributed to this client for dashboard period lists */
   periodRevenue?: number

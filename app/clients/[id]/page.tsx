@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Edit, Users, Mail, Phone, Calendar, MapPin, CreditCard, User, Heart, Activity, FileText, Trash2, X } from 'lucide-react'
 import PageLoader from '@/components/PageLoader'
+import BalancePaymentModal from '@/components/BalancePaymentModal'
 
 interface Client {
   clientId: number
@@ -79,6 +80,15 @@ export default function ViewClientPage() {
   const [editingRenewal, setEditingRenewal] = useState<Renewal | null>(null)
   const [savingRenewal, setSavingRenewal] = useState(false)
   const [deletingRenewal, setDeletingRenewal] = useState(false)
+  const [showPaymentUpdate, setShowPaymentUpdate] = useState(false)
+  const [balance, setBalance] = useState<{
+    charge: number
+    totalPaid: number
+    balanceDue: number
+    basePaid: number
+    installmentPaid: number
+    payments: { id: string; amount: number; paymentDate: string; paymentMode?: string }[]
+  } | null>(null)
   const [editForm, setEditForm] = useState({
     membershipType: '',
     joiningDate: '',
@@ -102,6 +112,7 @@ export default function ViewClientPage() {
         const data = await response.json()
         setClient(data)
         fetchRenewals(data.clientId)
+        fetchBalance(data.clientId)
       } else if (response.status === 404) {
         router.push('/clients')
       }
@@ -109,6 +120,16 @@ export default function ViewClientPage() {
       console.error('Error fetching client:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchBalance = async (cid: number) => {
+    try {
+      const res = await fetch(`/api/clients/${cid}/payments`)
+      if (res.ok) setBalance(await res.json())
+      else setBalance(null)
+    } catch {
+      setBalance(null)
     }
   }
 
@@ -339,13 +360,22 @@ export default function ViewClientPage() {
             <p className="text-gray-600 text-sm sm:text-base">Client ID: {client.clientId}</p>
           </div>
         </div>
-        <Link
-          href={`/clients/${clientId}/edit`}
-          className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors flex items-center gap-2"
-        >
-          <Edit className="w-4 h-4" />
-          Edit Client
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setShowPaymentUpdate(true)}
+            className="border border-fitura-blue text-fitura-blue px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue/10"
+          >
+            Update payment
+          </button>
+          <Link
+            href={`/clients/${clientId}/edit`}
+            className="bg-fitura-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-fitura-blue transition-colors flex items-center gap-2"
+          >
+            <Edit className="w-4 h-4" />
+            Edit Client
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -514,8 +544,14 @@ export default function ViewClientPage() {
               )}
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase">Paid Amount</label>
-                <p className={`text-gray-900 ${client.paidAmount && client.membershipFee && client.paidAmount < (client.membershipFee - (client.discount || 0)) ? 'text-red-600 font-semibold' : ''}`}>
-                  {formatCurrency(client.paidAmount)}
+                <p className={`text-gray-900 ${(balance?.balanceDue ?? 0) > 0 ? 'text-red-600 font-semibold' : ''}`}>
+                  {formatCurrency(balance?.totalPaid ?? client.paidAmount)}
+                </p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase">Balance due</label>
+                <p className={`font-semibold ${(balance?.balanceDue ?? 0) > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                  {balance ? formatCurrency(balance.balanceDue) : '—'}
                 </p>
               </div>
               {client.paymentDate && (
@@ -862,6 +898,17 @@ export default function ViewClientPage() {
           </div>
         </div>
       )}
+
+      {showPaymentUpdate && client ? (
+        <BalancePaymentModal
+          clientId={client.clientId}
+          firstName={client.firstName}
+          lastName={client.lastName}
+          photoUrl={client.photoUrl}
+          onClose={() => setShowPaymentUpdate(false)}
+          onSaved={() => fetchBalance(client.clientId)}
+        />
+      ) : null}
     </div>
   )
 }

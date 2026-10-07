@@ -3,6 +3,7 @@ import connectDB from './db';
 import Client from './models/Client';
 import Renewal from './models/Renewal';
 import Attendance from './models/Attendance';
+import Payment from './models/Payment';
 import {
   getTodayRangeIST,
   getThisMonthRangeIST,
@@ -122,17 +123,48 @@ export async function sumRenewalRevenueInRange(
   return r[0]?.revenue || 0;
 }
 
-/** Renewal payments in range + new members not yet represented in renewals collection. */
+/** Later amounts recorded with Update payment, counted on the day they were paid. */
+export async function sumInstallmentRevenueInRange(
+  start: Date,
+  end: Date,
+  gym?: string | null
+): Promise<number> {
+  await connectDB();
+  const g = String(gym || '').trim();
+  const pipeline: mongoose.PipelineStage[] = [
+    { $match: { paymentDate: { $gte: start, $lte: end } } },
+    {
+      $lookup: {
+        from: 'clients',
+        localField: 'clientId',
+        foreignField: 'clientId',
+        as: 'cl',
+      },
+    },
+    { $unwind: { path: '$cl' } },
+  ];
+  if (g) {
+    pipeline.push({ $match: gymMatchOnNestedClient('cl', g) as Record<string, unknown> });
+  }
+  pipeline.push({
+    $group: { _id: null, revenue: { $sum: { $ifNull: ['$amount', 0] } } },
+  });
+  const r = await Payment.aggregate(pipeline);
+  return r[0]?.revenue || 0;
+}
+
+/** Renewal payments in range + new members not yet represented in renewals collection + later balance payments. */
 export async function combinedRevenueInRange(
   start: Date,
   end: Date,
   gym?: string | null
 ): Promise<number> {
-  const [a, b] = await Promise.all([
+  const [a, b, c] = await Promise.all([
     sumRenewalRevenueInRange(start, end, gym),
     sumOrphanRegistrationRevenueInRange(start, end, gym),
+    sumInstallmentRevenueInRange(start, end, gym),
   ]);
-  return a + b;
+  return a + b + c;
 }
 
 export async function countClientsWithGym(gym?: string | null): Promise<number> {
